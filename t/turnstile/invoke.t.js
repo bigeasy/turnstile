@@ -1,4 +1,4 @@
-require('proof')(3, function (step, equal) {
+require('proof')(4, function (step, ok, equal) {
     var Turnstile = require('../..')
     var callback
     var turnstile = new Turnstile({
@@ -24,5 +24,10 @@ require('proof')(3, function (step, equal) {
         turnstile.once('echo', step(-1))
     }, function (value) {
         equal(value, 1, 'event echoed')
+    }, function () {
+        turnstile.enter('echo', object.echo, 1)
+        turnstile.once('empty', step(-1))
+    }, function () {
+        ok(1, 'done')
     })
 })

@@ -14,7 +14,7 @@ function Turnstile (options) {
 util.inherits(Turnstile, events.EventEmitter)
 
 Turnstile.prototype.enter = function () {
-    var events = [ 'turnstile.through' ], context = null, method, event
+    var events = [ 'through' ], context = null, method, event
     var vargs = __slice.call(arguments)
     if (typeof vargs[0] == 'string') {
         events.unshift(event = vargs.shift())
@@ -41,7 +41,8 @@ Turnstile.prototype.enter = function () {
         if (this._queue.length == 1) {
             this._consume(function (error) {
                 if (error) throw error
-            })
+                this.emit('empty')
+            }.bind(this))
         }
     }
     return function (callback) {
@@ -58,7 +59,9 @@ Turnstile.prototype._consume = cadence(function (step) {
         }, function () {
             return this._queue[0]
         }, function (entry) {
-            if (!entry) step(null)
+            if (!entry) {
+                step(null)
+            }
         }, function (entry) {
             step(function () {
                 setImmediate(step())
@@ -88,7 +91,6 @@ Turnstile.prototype._consume = cadence(function (step) {
             if (error !== thrown) {
                 errors.push(thrown)
             }
-            console.log(thrown)
             throw errors
         }
     }])
