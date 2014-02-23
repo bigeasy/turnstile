@@ -1,3 +1,3 @@
 ### Issue by Issue
 
- * Release version 0.0.0. #5.
+ * Implement rough draft of queue. #6.
