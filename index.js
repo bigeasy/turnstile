@@ -4,6 +4,7 @@ var util = require('util')
 var events = require('events')
 
 function Turnstile (options) {
+    this._enqueued = {}
     this._queue = []
     this._next = []
     this._error = options.error
@@ -13,10 +14,10 @@ function Turnstile (options) {
 util.inherits(Turnstile, events.EventEmitter)
 
 Turnstile.prototype.enter = function () {
-    var events = [ 'turnstile.through' ], context = null, method
+    var events = [ 'turnstile.through' ], context = null, method, event
     var vargs = __slice.call(arguments)
     if (typeof vargs[0] == 'string') {
-        events.unshift(vargs.shift())
+        events.unshift(event = vargs.shift())
     }
     if (typeof vargs[0] == 'object') {
         context = vargs.shift()
@@ -32,11 +33,16 @@ Turnstile.prototype.enter = function () {
         method: method,
         parameters: vargs
     }
-    this._queue.push(entry)
-    if (this._queue.length == 1) {
-        this._consume(function (error) {
-            if (error) throw error
-        })
+    if (!event || vargs.length || !this._enqueued[event]) {
+        if (event && !vargs.length) {
+            this._enqueued[event] = true
+        }
+        this._queue.push(entry)
+        if (this._queue.length == 1) {
+            this._consume(function (error) {
+                if (error) throw error
+            })
+        }
     }
     return function (callback) {
         entry.callback = callback
@@ -57,6 +63,9 @@ Turnstile.prototype._consume = cadence(function (step) {
             step(function () {
                 setImmediate(step())
             }, function () {
+                if (entry.events.length == 2 && !entry.parameters.length) {
+                    delete this._enqueued[entry.events[0]]
+                }
                 entry.method.apply(entry.context, entry.parameters.concat(step()))
             }, function () {
                 return [  __slice.call(arguments) ]
