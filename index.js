@@ -13,6 +13,23 @@ function Turnstile (options) {
 }
 util.inherits(Turnstile, events.EventEmitter)
 
+Turnstile.prototype.listener = function (object, method) {
+    var turnstile = this
+    return function () {
+        turnstile._subseqeunt(object, method, __slice.call(arguments), function (error) {
+            if (error) throw error
+        })
+    }
+}
+
+Turnstile.prototype._subseqeunt = cadence(function (step, object, method, vargs) {
+    step([function () {
+        object[method].apply(object, vargs.concat(step()))
+    }, function (errors, error) {
+        this._catch(errors, error, object, method, vargs)
+    }])
+})
+
 Turnstile.prototype.enter = function () {
     var events = [ 'through' ], context = null, method, event
     var vargs = __slice.call(arguments)
@@ -84,16 +101,19 @@ Turnstile.prototype._consume = cadence(function (step) {
             this._queue.shift()
         })()
     }, function (errors, error) {
-        try {
-            var entry = this._queue.shift()
-            this._error.apply(this, [ error ].concat(entry))
-        } catch (thrown) {
-            if (error !== thrown) {
-                errors.push(thrown)
-            }
-            throw errors
-        }
+        this._catch(errors, error, this._queue.shift())
     }])
 })
+
+Turnstile.prototype._catch = function (errors, error, object, method, vargs) {
+    try {
+        this._error.apply(this, [ error ].concat([ object, method, vargs ]))
+    } catch (thrown) {
+        if (error !== thrown) {
+            errors.push(thrown)
+        }
+        throw errors
+    }
+}
 
 module.exports = Turnstile
