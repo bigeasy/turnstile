@@ -22,7 +22,7 @@
     },
     "dependencies":
     {
-                        "cadence":            "0.0.35"
+                        "cadence":            "0.0.36"
     },
     "devDependencies":
     {
