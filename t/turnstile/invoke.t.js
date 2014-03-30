@@ -1,42 +1,17 @@
-require('proof')(5, function (step, ok, equal) {
-    var Turnstile = require('../..')
-    var callback
-    var turnstile = new Turnstile({
-        error: function (error, object, method) {
-            throw error
+require('proof')(1, function (step, assert) {
+    var results = [], pause
+    var turnstile = require('../..')(function (callback) {
+        if (!pause) {
+            pause = callback
+        } else {
+            callback(null, 2)
         }
+    }, function (error, result) {
+        results.push(result)
     })
-    var object = {
-        echo: function (value, callback) {
-            callback(null, value)
-        }
-    }
-    step(function () {
-        turnstile.enter(object, 'echo', 1)(step())
-    }, function (value) {
-        equal(value, 1, 'method echoed')
-    }, function () {
-        turnstile.enter(object.echo, 1)(step())
-    }, function (value) {
-        equal(value, 1, 'function echoed')
-    }, function () {
-        turnstile.enter('echo', object.echo, 1)(step())
-        turnstile.once('echo', step(-1))
-    }, function (value) {
-        equal(value, 1, 'event echoed')
-    }, function () {
-        var subsequent = {
-            next: function (value, callback) {
-                equal(value, 1, 'next')
-                callback()
-            }
-        }
-        turnstile.once('echo', turnstile.listener(subsequent, 'next'))
-        turnstile.enter('echo', object.echo, 1)(step())
-    }, function () {
-        turnstile.enter('echo', object.echo, 1)
-        turnstile.once('empty', step(-1))
-    }, function () {
-        ok(1, 'done')
-    })
+    turnstile()
+    turnstile()
+    turnstile()
+    pause(null, 1)
+    assert(results, [ 1, 2 ], 'completed')
 })
