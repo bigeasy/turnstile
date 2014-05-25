@@ -1,4 +1,4 @@
-require('proof')(1, function (step, assert) {
+require('proof')(2, function (step, assert) {
     var results = [], pause
     var turnstile = require('../..')(function (callback) {
         if (!pause) {
@@ -9,7 +9,9 @@ require('proof')(1, function (step, assert) {
     }, function (error, result) {
         results.push(result)
     })
-    turnstile()
+    turnstile(function (error, result) {
+        assert(result, 1, 'waited')
+    })
     turnstile()
     turnstile()
     pause(null, 1)
