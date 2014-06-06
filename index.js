@@ -1,7 +1,7 @@
 var __slice = [].slice
 
-module.exports = function (procedure, subsequent) {
-    var running, waiting, callbacks = { queue: [] }
+module.exports = function (guarded, procedure, subsequent) {
+    var running, waiting, value, callbacks = { queue: [] }
     function run (callback) {
         if (callback) {
             callbacks.queue.push(callback)
@@ -9,11 +9,12 @@ module.exports = function (procedure, subsequent) {
         if (!running) {
             running = true
             callbacks.next = callbacks.queue.splice(0, callbacks.queue.length)
+            value = guarded()
             if (subsequent) {
                 callbacks.next.unshift(subsequent)
             }
             try {
-                procedure(function () {
+                procedure(value, function () {
                     var vargs = __slice.call(arguments)
                     running = false
                     callbacks.next.splice(0, callbacks.next.length).forEach(function (callback) {

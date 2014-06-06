@@ -1,6 +1,8 @@
 require('proof')(2, function (step, assert) {
     var results = [], pause
-    var turnstile = require('../..')(function (callback) {
+    var turnstile = require('../..')(function () {
+        return 0
+    }, function (value, callback) {
         if (!pause) {
             pause = callback
         } else {
