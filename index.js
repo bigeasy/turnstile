@@ -1,26 +1,36 @@
+var __slice = [].slice
+
 module.exports = function (procedure, subsequent) {
-    var running, waiting, callbacks = []
+    var running, waiting, callbacks = { queue: [] }
     function run (callback) {
         if (callback) {
-            callbacks.push(callback)
+            callbacks.queue.push(callback)
         }
         if (!running) {
             running = true
+            callbacks.next = callbacks.queue.splice(0, callbacks.queue.length)
+            if (subsequent) {
+                callbacks.next.unshift(subsequent)
+            }
             try {
                 procedure(function () {
+                    var vargs = __slice.call(arguments)
                     running = false
-                    subsequent.apply(null, arguments)
-                    while (callbacks.length) {
-                        callbacks.shift().apply(null, arguments)
-                    }
+                    callbacks.next.splice(0, callbacks.next.length).forEach(function (callback) {
+                        callback.apply(null, vargs)
+                    })
                     if (waiting) {
                         waiting = false
                         run()
                     }
                 })
-            } catch (e) {
+            } catch (error) {
                 running = false
-                subsequent(e)
+                if (callbacks.next.length) {
+                    callbacks.next.forEach(function (callback) { callback.call(null, error) })
+                } else {
+                    throw error
+                }
             }
         } else {
             waiting = true
