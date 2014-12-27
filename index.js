@@ -1,41 +1,34 @@
-var __slice = [].slice
+var slice = [].slice,
+    cadence = require('cadence')
 
-module.exports = function (guarded, procedure, subsequent) {
-    var running, waiting, value, callbacks = { queue: [] }
-    function run (callback) {
-        if (callback) {
-            callbacks.queue.push(callback)
-        }
-        if (!running) {
-            running = true
-            callbacks.next = callbacks.queue.splice(0, callbacks.queue.length)
-            value = guarded()
-            if (subsequent) {
-                callbacks.next.unshift(subsequent)
-            }
-            try {
-                procedure(value, function () {
-                    var vargs = __slice.call(arguments)
-                    running = false
-                    callbacks.next.splice(0, callbacks.next.length).forEach(function (callback) {
-                        callback.apply(null, vargs)
-                    })
-                    if (waiting) {
-                        waiting = false
-                        run()
-                    }
-                })
-            } catch (error) {
-                running = false
-                if (callbacks.next.length) {
-                    callbacks.next.forEach(function (callback) { callback.call(null, error) })
-                } else {
-                    throw error
-                }
-            }
-        } else {
-            waiting = true
+function Turnstile (nudge) {
+    this.nudge = nudge
+    this.workers = 1
+    this.working = 0
+}
+
+module.exports = function (source, transform, sink) {
+    var turnstile = new Turnstile(nudge)
+
+    var worker = cadence(function (async, work) {
+        turnstile.working++
+        async([function () {
+            turnstile.working--
+        }], function () {
+            transform(work, async())
+        })
+    })
+
+    function nudge () {
+        if (turnstile.working >= turnstile.workers) return
+        var work = source()
+        if (work) {
+            worker(work, function () {
+                sink.apply(null, slice.call(arguments))
+                turnstile.nudge()
+            })
         }
     }
-    return run
+
+    return turnstile
 }

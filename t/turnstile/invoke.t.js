@@ -1,21 +1,21 @@
-require('proof')(2, function (assert) {
-    var results = [], pause
+
+require('proof')(1, prove)
+
+function prove (assert) {
+    var results = [], pause, count = 2
     var turnstile = require('../..')(function () {
-        return 0
+        return count != 0 ? count-- : null
     }, function (value, callback) {
         if (!pause) {
-            pause = callback
+            pause = function () { callback(null, value) }
         } else {
-            callback(null, 2)
+            callback(null, value)
         }
     }, function (error, result) {
         results.push(result)
     })
-    turnstile(function (error, result) {
-        assert(result, 1, 'waited')
-    })
-    turnstile()
-    turnstile()
-    pause(null, 1)
-    assert(results, [ 1, 2 ], 'completed')
-})
+    turnstile.nudge()
+    turnstile.nudge()
+    pause()
+    assert(results, [ 2, 1 ], 'completed')
+}

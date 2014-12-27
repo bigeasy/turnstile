@@ -25,7 +25,8 @@
     },
     "devDependencies":
     {
-                        "proof":              "0.0.50"
+                        "proof":              "0.0.50",
+                        "cadence":            "0.0.43"
     },
     "scripts":
     {
