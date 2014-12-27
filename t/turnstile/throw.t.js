@@ -1,4 +1,4 @@
-require('proof')(2, function (step, assert) {
+require('proof')(2, function (assert) {
     var results = [], turnstile
     turnstile = require('../..')(function () {
         return 0
