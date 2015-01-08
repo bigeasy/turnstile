@@ -23,8 +23,9 @@ module.exports = function (source, transform, sink) {
         if (turnstile.working >= turnstile.workers) return
         var work = source()
         if (work) {
-            worker(work, function () {
-                sink.apply(null, slice.call(arguments))
+            worker(work, function (error) {
+                if (sink) sink.apply(null, slice.call(arguments))
+                else if (error) throw error
                 turnstile.nudge()
             })
         }
