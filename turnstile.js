@@ -1,5 +1,5 @@
 var slice = [].slice,
-    cadence = require('cadence')
+    cadence = require('cadence/minimal')
 
 function Turnstile (nudge) {
     this.nudge = nudge
