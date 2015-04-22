@@ -1,7 +1,8 @@
 # Diary
 
-Thoughts on turnstile. First, it ought to be simple, with minimal backoff logic,
-since we if we really cared about backing off we'd use a real event queue.
+Thoughts on turnstile. First, it ought to be simple, with minimal back-off
+logic, since we if we really cared about backing off we'd use a real event
+queue.
 
 ```javascript
 var turnstile = new Turnstile.batch(cadence(function (step, values, attept) {
