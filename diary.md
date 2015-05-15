@@ -45,3 +45,33 @@ Database.prototype.insert = cadence(function (step, value) {
     })
 })
 ```
+
+Thoughts on an API that also provides a universal sink.
+
+```
+var turnstile = createTurnstile(function (error, context) {
+    if (context == 'fatal') {
+        throw error
+    } else {
+        console.log({ context: context, stack: error.stack })
+    }
+})
+
+turnstile(256, function (value, callback) {
+})
+turnstile(function (values, callback) {
+}).push(1)
+turnstile(function () {
+}, function () {
+})
+
+turnstile.push.bind(turnstile)
+
+var turnstylist = new Turnstylist(function (error, context) {
+})
+turnstylist.createTurnstile(function () {
+    return true
+}, function (value, callback) {
+    foo
+}, 'fatal')
+```
