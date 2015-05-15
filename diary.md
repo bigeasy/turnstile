@@ -65,6 +65,18 @@ turnstile(function () {
 }, function () {
 })
 
+// so maybe one more construction step...
+
+// run in background
+turnstile(function (callback) {
+}).once()
+turnstile(function (callback) {
+}).daemon(3000)
+
+// no queueing.
+var queue = turnstile(function (value, callback) {
+}).immediate()
+
 turnstile.push.bind(turnstile)
 
 var turnstylist = new Turnstylist(function (error, context) {
