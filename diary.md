@@ -67,15 +67,27 @@ turnstile(function () {
 
 // so maybe one more construction step...
 
-// run in background
-turnstile(function (callback) {
-}).once()
-turnstile(function (callback) {
-}).daemon(3000)
+// queued and one at a time.
+turnstile.invoke(function () {
+}, function (value, callback) {
+})
 
 // no queueing.
-var queue = turnstile(function (value, callback) {
-}).immediate()
+var queue = turnstile.immediate(function (value, callback) {
+})
+// queued and one at a time.
+turnstile.queue(function (value, callback) {
+})
+
+// queued with a maximum of 256 at a time.
+turnstile.queue(256, function (values, callback) {
+})
+
+// run in background
+turnstile.once(function (callback) {
+})
+turnstile.daemon(3000, function (callback) {
+})
 
 turnstile.push.bind(turnstile)
 
