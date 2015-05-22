@@ -1,6 +1,8 @@
 var slice = [].slice,
     cadence = require('cadence/redux')
 
+function abend (error) { if (error) throw error }
+
 function TurnstileFactory (catcher) {
     this._catcher = catcher
 }
@@ -22,6 +24,62 @@ TurnstileFactory.prototype.buffer = function (chunkSize, f) {
     var f = vargs.shift()
     var workers = vargs.shift() || 1
     return new Buffer(this._catcher, name, object, f, chunkSize, workers)
+}
+
+TurnstileFactory.prototype.throttle = function (options) {
+    var vargs = slice.call(arguments)
+    var workers = typeof vargs[0] === 'number' ? vargs.shift() : 1
+    var object = typeof vargs[0] === 'object' ? vargs.shift() : null
+    var method = vargs.shift()
+    var f = typeof method === 'string'
+          ? function () { this[method].apply(this, slice.call(arguments)) }
+          : method
+    var callback = typeof vargs[0] === 'function' ? vargs.shift() : this._catcher
+    return new Throttle(workers, object, f, callback, vargs)
+}
+
+function Throttle (workers, object, f, callback, vargs) {
+    this._callback = callback
+    this._vargs = vargs
+    this.count = 0
+    this.waiting = 0
+    this.workers = workers
+    this.working = 0
+    this._next = this._previous = this
+    this._turnstile = new Turnstile(this, object, f)
+}
+
+Throttle.prototype._decrement = function (work) {
+    this.count--
+    this.working--
+}
+
+Throttle.prototype._shift = function () {
+    // Unlink a task.
+    var task = this._previous
+    this._previous = task._previous
+    this._previous._next = this
+    // Adjust waiting to working.
+    this.waiting--
+    this.working++
+    return task
+}
+
+Throttle.prototype.enqueue = function () {
+    var vargs, task = {
+        vargs: vargs = slice.call(arguments),
+        callback: this._catcher,
+        _next: this._next,
+        _previous: this
+    }
+    if (typeof vargs[vargs.length - 1] === 'function') {
+        task.callback = vargs.pop()
+    }
+    task._next._previous = task
+    task._previous._next = task
+    this.waiting++
+    this.count++
+    this._turnstile.nudge()
 }
 
 function Queue (catcher, name, object, f, workers) {
@@ -156,6 +214,32 @@ Buffer.prototype._attempt = cadence(function (async, items) {
         this.count -= items.length
     }], function () {
         this._f.call(null, items, async())
+    })
+})
+
+function Turnstile (source, object, f) {
+    this._object = object
+    this._f = f
+    this._source = source
+}
+
+Turnstile.prototype.nudge = function () {
+    var turnstile = this, source = turnstile._source
+    if (source.waiting && source.working < source.workers) {
+        var task = source._shift()
+        turnstile._attempt(task, function () {
+            task.callback.apply(null, slice.call(arguments))
+            turnstile.nudge()
+        })
+    }
+}
+
+// We use Cadence because of its superior try/catch abilities.
+Turnstile.prototype._attempt = cadence(function (async, task) {
+    async([function () {
+        this._source._decrement(task)
+    }], function () {
+        this._f.apply(this._object, task.vargs.concat(async()))
     })
 })
 

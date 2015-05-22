@@ -1,4 +1,4 @@
-require('proof')(8, prove)
+require('proof')(11, prove)
 
 function prove (assert) {
     var turnstile = require('../../redux')
@@ -38,5 +38,16 @@ function prove (assert) {
     })
     buffer.push(1, function (error) {
         assert(error.message, 'test', 'buffer error')
+    })
+    var throttle = factory.throttle(3, object, 'method', function (error) {
+        assert(error.message, 'throttle', 'throttle error')
+    })
+    object.method = function (a, callback) {
+        assert(a, 1, 'throttle called')
+        callback(null, 2)
+    }
+    assert(throttle.workers, 3, 'throttle workers')
+    throttle.enqueue(1, function (error, result) {
+        assert(result, 2, 'throttle called back')
     })
 }
