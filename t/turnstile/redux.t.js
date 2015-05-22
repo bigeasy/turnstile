@@ -1,4 +1,4 @@
-require('proof')(11, prove)
+require('proof')(12, prove)
 
 function prove (assert) {
     var turnstile = require('../../redux')
@@ -50,4 +50,16 @@ function prove (assert) {
     throttle.enqueue(1, function (error, result) {
         assert(result, 2, 'throttle called back')
     })
+    // test a healthy monkey doodle.
+    object.shift = function () {
+        return this.items.length && [ this.items.splice(0, this.items.length) ]
+    }
+    object.items = [ 1 ]
+    object.consume = function (items, callback) {
+        assert(items, [ 1 ], 'consumer called')
+        callback(null, items)
+    }
+    var consumer = factory.consumer(3, object, 'shift', 'consume', function (error) {
+    })
+    consumer.nudge()
 }

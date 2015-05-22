@@ -38,6 +38,21 @@ TurnstileFactory.prototype.throttle = function (options) {
     return new Throttle(workers, object, f, callback, vargs)
 }
 
+TurnstileFactory.prototype.consumer = function (options) {
+    var vargs = slice.call(arguments)
+    var workers = typeof vargs[0] === 'number' ? vargs.shift() : 1
+    var object = typeof vargs[0] === 'object' ? vargs.shift() : null
+    var shift = vargs.shift()
+    var s = typeof shift === 'string' ? function () { return this[shift].apply(this) }
+          : shift
+    var method = vargs.shift()
+    var f = typeof method === 'string'
+          ? function () { this[method].apply(this, slice.call(arguments)) }
+          : method
+    var callback = typeof vargs[0] === 'function' ? vargs.shift() : this._catcher
+    return new Consumer(workers, object, s, f, callback, vargs)
+}
+
 function Throttle (workers, object, f, callback, vargs) {
     this._callback = callback
     this._vargs = vargs
@@ -49,9 +64,8 @@ function Throttle (workers, object, f, callback, vargs) {
     this._turnstile = new Turnstile(this, object, f)
 }
 
-Throttle.prototype._decrement = function (work) {
-    this.count--
-    this.working--
+Throttle.prototype._waiting = function () {
+    return this.waiting != 0
 }
 
 Throttle.prototype._shift = function () {
@@ -63,6 +77,11 @@ Throttle.prototype._shift = function () {
     this.waiting--
     this.working++
     return task
+}
+
+Throttle.prototype._decrement = function (work) {
+    this.count--
+    this.working--
 }
 
 Throttle.prototype.enqueue = function () {
@@ -79,6 +98,40 @@ Throttle.prototype.enqueue = function () {
     task._previous._next = task
     this.waiting++
     this.count++
+    this._turnstile.nudge()
+}
+
+function Consumer (workers, object, s, f, callback, vargs) {
+    this._callback = callback
+    this._vargs = vargs
+    this.count = 0
+    this.waiting = 0
+    this.workers = workers
+    this.working = 0
+    this._object = object
+    this._s = s
+    this._callback = callback
+    this._vargs = vargs
+    this._turnstile = new Turnstile(this, object, f)
+}
+
+Consumer.prototype._waiting = function () {
+    return this._task = this._s.call(this._object)
+}
+
+Consumer.prototype._shift = function () {
+    this.working++
+    return {
+        vargs: this._task,
+        callback: this._callback
+    }
+}
+
+Consumer.prototype._decrement = function () {
+    this.working--
+}
+
+Consumer.prototype.nudge = function () {
     this._turnstile.nudge()
 }
 
@@ -225,7 +278,7 @@ function Turnstile (source, object, f) {
 
 Turnstile.prototype.nudge = function () {
     var turnstile = this, source = turnstile._source
-    if (source.waiting && source.working < source.workers) {
+    if (source._waiting() && source.working < source.workers) {
         var task = source._shift()
         turnstile._attempt(task, function () {
             task.callback.apply(null, slice.call(arguments))
