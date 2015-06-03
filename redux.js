@@ -4,7 +4,7 @@ var slice = [].slice,
 function abend (error) { if (error) throw error }
 
 function TurnstileFactory (catcher) {
-    this._catcher = catcher
+    this._catcher = catcher || abend
 }
 
 TurnstileFactory.prototype.queue = function (f, workers) {
