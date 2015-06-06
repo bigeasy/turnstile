@@ -75,19 +75,17 @@ Throttle.prototype._shift = function () {
     this._previous._next = this
     // Adjust waiting to working.
     this.waiting--
-    this.working++
     return task
 }
 
 Throttle.prototype._decrement = function (work) {
     this.count--
-    this.working--
 }
 
 Throttle.prototype.enqueue = function () {
     var vargs, task = {
         vargs: vargs = slice.call(arguments),
-        callback: this._catcher,
+        callback: this._callback,
         _next: this._next,
         _previous: this
     }
@@ -116,19 +114,19 @@ function Consumer (workers, object, s, f, callback, vargs) {
 }
 
 Consumer.prototype._waiting = function () {
-    return this._task = this._s.call(this._object)
+    return this._task || (this._task = this._s.call(this._object))
 }
 
 Consumer.prototype._shift = function () {
-    this.working++
-    return {
+    var work = {
         vargs: this._task,
         callback: this._callback
     }
+    this._task = null
+    return work
 }
 
 Consumer.prototype._decrement = function () {
-    this.working--
 }
 
 Consumer.prototype.nudge = function () {
@@ -276,14 +274,30 @@ function Turnstile (source, object, f) {
     this._source = source
 }
 
+Turnstile.prototype._nudge = cadence(function (async) {
+    async([function () {
+        this._source.working--
+    }], function () {
+        this._source.working++
+        var loop = async(function () {
+            if (!this._source._waiting()) {
+                return [ loop ]
+            }
+            var task = this._source._shift()
+            async([function () {
+                this._attempt(task, async())
+            }, function (error) {
+                task.callback.call(null, error)
+            }], [], function (vargs) {
+                task.callback.apply(null, [ null ].concat(vargs))
+            })
+        })()
+    })
+})
+
 Turnstile.prototype.nudge = function () {
-    var turnstile = this, source = turnstile._source
-    if (source._waiting() && source.working < source.workers) {
-        var task = source._shift()
-        turnstile._attempt(task, function () {
-            task.callback.apply(null, slice.call(arguments))
-            turnstile.nudge()
-        })
+    while (this._source._waiting() && this._source.working < this._source.workers) {
+        this._nudge(abend)
     }
 }
 
