@@ -39,8 +39,12 @@ function prove (assert) {
     buffer.push(1, function (error) {
         assert(error.message, 'test', 'buffer error')
     })
-    var throttle = factory.throttle(3, object, 'method', function (error) {
-        assert(error.message, 'throttle', 'throttle error')
+    var throttle = factory.throttle({
+        workers: 3,
+        procedure: { object: object, method: 'method' },
+        error: function (error) {
+            assert(error.message, 'throttle', 'throttle error')
+        }
     })
     object.method = function (a, callback) {
         assert(a, 1, 'throttle called')

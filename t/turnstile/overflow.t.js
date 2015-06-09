@@ -1,6 +1,6 @@
 require('proof')(1, prove)
 
-function prove (assert) {
+function prove (assert, callback) {
     var turnstile = require('../../redux')()
     var object = {
         method: function (callback) {
@@ -12,11 +12,14 @@ function prove (assert) {
             }
         }
     }
-    var throttle = turnstile.throttle(object, 'method')
+    var throttle = turnstile.throttle({
+        procedure: { object: object, method: 'method' }
+    })
     for (var i = 0; i < 50000; i++) {
         throttle.enqueue()
     }
     throttle.enqueue(function () {
         assert(true, 'no overflow')
+        callback()
     })
 }

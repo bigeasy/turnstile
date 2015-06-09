@@ -27,15 +27,22 @@ TurnstileFactory.prototype.buffer = function (chunkSize, f) {
 }
 
 TurnstileFactory.prototype.throttle = function (options) {
-    var vargs = slice.call(arguments)
-    var workers = typeof vargs[0] === 'number' ? vargs.shift() : 1
-    var object = typeof vargs[0] === 'object' ? vargs.shift() : null
-    var method = vargs.shift()
-    var f = typeof method === 'string'
-          ? function () { this[method].apply(this, slice.call(arguments)) }
-          : method
-    var callback = typeof vargs[0] === 'function' ? vargs.shift() : this._catcher
-    return new Throttle(workers, object, f, callback, vargs)
+    var o = {
+        workers: options.workers || 1,
+        procedure: typeof options.procedure === 'function' ? {
+            object: null,
+            method: options.procedure
+        } : options.procedure,
+        callback: options.callback || this._catcher
+    }
+    if (typeof o.procedure.method === 'string' && o.procedure.object) {
+        var method = o.procedure.method
+        o.procedure.method = function () { this[method].apply(this, slice.call(arguments)) }
+    }
+    if (typeof o.procedure.method !== 'function') {
+        throw new Error('procedure required')
+    }
+    return new Throttle(o)
 }
 
 TurnstileFactory.prototype.consumer = function (options) {
@@ -53,15 +60,15 @@ TurnstileFactory.prototype.consumer = function (options) {
     return new Consumer(workers, object, s, f, callback, vargs)
 }
 
-function Throttle (workers, object, f, callback, vargs) {
-    this._callback = callback
-    this._vargs = vargs
+function Throttle (options) {
+    this._callback = options.callback
+    this._vargs = []
     this.count = 0
     this.waiting = 0
-    this.workers = workers
+    this.workers = options.workers
     this.working = 0
     this._next = this._previous = this
-    this._turnstile = new Turnstile(this, object, f)
+    this._turnstile = new Turnstile(this, options.procedure.object, options.procedure.method)
 }
 
 Throttle.prototype._waiting = function () {
