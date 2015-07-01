@@ -23,7 +23,8 @@
     "main":             "turnstile.js",
     "dependencies":
     {
-                        "cadence":            "0.0.54"
+                        "cadence":            "0.0.54",
+                        "abend":              "0.0.0"
     },
     "devDependencies":
     {
