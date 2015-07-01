@@ -60,7 +60,7 @@ Buffer.prototype.write = function (items, callback) {
 
     created.forEach(function (key) {
         var buffer = this._buffers[key]
-        this.turnstile.enter(this, this.consume, [ buffer, key ], function (error) {
+        this.turnstile.enter(this, this._consume, [ buffer, key ], function (error) {
             buffer.callbacks.forEach(function (callback) {
                 done(callback, error)
             })
@@ -88,7 +88,7 @@ Buffer.prototype.write = function (items, callback) {
     }
 }
 
-Buffer.prototype.consume = cadence(function (async, buffer, key) {
+Buffer.prototype._consume = cadence(function (async, buffer, key) {
     if (this._buffers[key] === buffer) {
         delete this._buffers[key]
     }
