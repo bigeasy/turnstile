@@ -134,6 +134,7 @@ Turnstile.prototype.enter = function (object, method, vargs, callback) {
     this.waiting++
 }
 
+// We use Cadence because of its superior try/catch abilities.
 Turnstile.prototype._nudge = cadence(function (async) {
     async([function () {
         this.working--
@@ -156,15 +157,6 @@ Turnstile.prototype._nudge = cadence(function (async) {
                 work.callback.apply(work.object, [ null ].concat(vargs))
             })
         })()
-    })
-})
-
-// We use Cadence because of its superior try/catch abilities.
-Turnstile.prototype._attempt = cadence(function (async, task) {
-    async([function () {
-        task.finalize()
-    }], function () {
-        task.run(async())
     })
 })
 
