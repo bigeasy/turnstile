@@ -1,6 +1,7 @@
-var slice = [].slice,
-    cadence = require('cadence/redux'),
-    abend = require('abend')
+var cadence = require('cadence/redux'),
+    abend = require('abend'),
+    adhere = require('./adhere'),
+    Operation = require('./operation')
 
 function noop () { }
 
@@ -10,26 +11,6 @@ function done (callback, error) {
     } else {
         callback()
     }
-}
-
-function Operation (operation) {
-    if (typeof operation == 'function') {
-        this.operation = operation
-        this.object = null
-    } else if (typeof operation.object == 'object') {
-        this.object = operation.object
-        if (typeof operation.method == 'string') {
-            this.operation = function (vargs) {
-                this[operation.method].apply(this, vargs)
-            }
-        } else {
-            this.operation = operation.method
-        }
-    }
-}
-
-Operation.prototype.apply = function (vargs) {
-    this.operation.apply(this.object, vargs)
 }
 
 function Buffer (options) {
@@ -169,82 +150,8 @@ Turnstile.prototype.nudge = function (callback) {
 exports.Turnstile = Turnstile
 
 exports.method = function (method) {
-    var throttle
-
-    // Preserving arity costs next to nothing; the call to `execute` in
-    // these functions will be inlined. The airty function itself will never
-    // be inlined because it is in a different context than that of our
-    // dear user, but it will be compiled.
-    switch (method.length) {
-    case 0:
-        throttle = function () {
-            var vargs = new Array
-            for (var i = 0, I = arguments.length; i < I; i++) {
-                vargs.push(arguments[i])
-            }
-            this._turnstile.enter(this, method, vargs, vargs.pop())
-            this._turnstile.nudge(abend)
-        }
-        break
-    case 1:
-        throttle = function (one) {
-            var vargs = new Array
-            for (var i = 0, I = arguments.length; i < I; i++) {
-                vargs.push(arguments[i])
-            }
-            this._turnstile.enter(this, method, vargs, vargs.pop())
-            this._turnstile.nudge(abend)
-        }
-        break
-    case 2:
-        throttle = function (one, two) {
-            var vargs = new Array
-            for (var i = 0, I = arguments.length; i < I; i++) {
-                vargs.push(arguments[i])
-            }
-            this._turnstile.enter(this, method, vargs, vargs.pop())
-            this._turnstile.nudge(abend)
-        }
-        break
-    case 3:
-        throttle = function (one, two, three) {
-            var vargs = new Array
-            for (var i = 0, I = arguments.length; i < I; i++) {
-                vargs.push(arguments[i])
-            }
-            this._turnstile.enter(this, method, vargs, vargs.pop())
-            this._turnstile.nudge(abend)
-        }
-        break
-    case 4:
-        throttle = function (one, two, three, four) {
-            var vargs = new Array
-            for (var i = 0, I = arguments.length; i < I; i++) {
-                vargs.push(arguments[i])
-            }
-            this._turnstile.enter(this, method, vargs, vargs.pop())
-            this._turnstile.nudge(abend)
-        }
-        break
-    default:
-        // Avert your eyes if you're squeamish.
-        var args = []
-        for (var i = 0, I = steps[0].length; i < I; i++) {
-            args[i] = '_' + i
-        }
-        var throttle = (new Function('method', '                            \n\
-            return function (' + args.join(',') + ') {                      \n\
-                var vargs = new Array                                       \n\
-                for (var i = 0, I = arguments.length; i < I; i++) {         \n\
-                    vargs.push(arguments[i])                                \n\
-                }                                                           \n\
-                this._turnstile.enter(this, method, vargs, vargs.pop())     \n\
-                this._turnstile.nudge(abend)                                \n\
-            }                                                               \n\
-       '))(method)
-    }
-
-    throttle.toString = function () { return method.toString() }
-
-    return throttle
+    return adhere(method, function (object, vargs) {
+        object._turnstile.enter(object, method, vargs, vargs.pop())
+        object._turnstile.nudge(abend)
+    })
 }
