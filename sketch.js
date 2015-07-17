@@ -1,7 +1,7 @@
 var cadence = require('cadence/redux'),
     abend = require('abend'),
-    adhere = require('./adhere'),
-    Operation = require('./operation')
+    adhere = require('adhere'),
+    Operation = require('operation')
 
 function noop () { }
 
