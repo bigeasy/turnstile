@@ -14,7 +14,7 @@ function done (callback, error) {
     }
 }
 
-function Buffer (options) {
+function Reservoir (options) {
     this._buffers = {}
     this.turnstile = options.turnstile
     this.groupBy = options.groupBy || function () { return 1 }
@@ -22,7 +22,7 @@ function Buffer (options) {
     this._operation = new Operation(options.operation)
 }
 
-Buffer.prototype.write = function (items, callback) {
+Reservoir.prototype.write = function (items, callback) {
     var catcher = this._catcher, seen = {}, created = [], buffers = 0, callbacks = 0, fiasco
 
     callback || (callback = noop)
@@ -81,7 +81,7 @@ Buffer.prototype.write = function (items, callback) {
     }
 }
 
-Buffer.prototype._consume = cadence(function (async, key) {
+Reservoir.prototype._consume = cadence(function (async, key) {
     var buffer = this._buffers[key]
     delete this._buffers[key]
     async([function () {
@@ -91,4 +91,4 @@ Buffer.prototype._consume = cadence(function (async, key) {
     })
 })
 
-module.exports = Buffer
+module.exports = Reservoir

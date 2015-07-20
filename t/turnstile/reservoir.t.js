@@ -3,12 +3,11 @@ require('proof')(4, require('cadence/redux')(prove))
 function prove (async, assert) {
     var turnstile = {
             Turnstile: require('../..'),
-            Buffer: require('../../buffer')
+            Reservoir: require('../../reservoir')
         }
     var abend = require('abend')
-    console.log(turnstile.Buffer)
 
-    new turnstile.Buffer({
+    new turnstile.Reservoir({
         operation: function () {}
     })
 
@@ -53,7 +52,7 @@ function prove (async, assert) {
     // the first exception, what gets reported when we throw. I'm happy with how
     // that sorted out.
 
-    var buffer, consumed = false, waiting = function (values, callback) {
+    var reservoir, consumed = false, waiting = function (values, callback) {
         assert(values, [ 1, 3, 5 ], 'queued')
         callback()
     }
@@ -63,12 +62,12 @@ function prove (async, assert) {
     }
 
     async(function () {
-        buffer = new turnstile.Buffer({
+        reservoir = new turnstile.Reservoir({
             turnstile: new turnstile.Turnstile({ workers: 1 }),
             catcher: function () {},
             operation: operation
         })
-        buffer.write([ 1, 3, 5 ], async())
+        reservoir.write([ 1, 3, 5 ], async())
     }, function () {
         var wait = async()
         assert(consumed, 'done')
@@ -76,9 +75,9 @@ function prove (async, assert) {
             callback()
             wait()
         }
-        buffer.write([ 1, 3, 5 ])
+        reservoir.write([ 1, 3, 5 ])
     }, [function () {
-        buffer = new turnstile.Buffer({
+        reservoir = new turnstile.Reservoir({
             turnstile: new turnstile.Turnstile({ workers: 1 }),
             groupBy: function (value) { return value % 2 },
             catcher: function () {},
@@ -86,7 +85,7 @@ function prove (async, assert) {
         })
         var wait
         waiting = function (values, callback) { throw new Error('errored') }
-        buffer.write([ 1, 2, 3 ], async())
+        reservoir.write([ 1, 2, 3 ], async())
     }, function (error) {
         assert(error.message, 'write failure', 'error')
         assert(error.errors[0].message, 'errored', 'cause')
