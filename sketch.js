@@ -1,9 +1,10 @@
 var cadence = require('cadence/redux'),
     abend = require('abend'),
+    eject = require('eject'),
     adhere = require('adhere'),
     Operation = require('operation')
 
-function noop () { }
+function noop () {}
 
 function done (callback, error) {
     if (error) {
@@ -17,12 +18,12 @@ function Buffer (options) {
     this._buffers = {}
     this.turnstile = options.turnstile
     this.groupBy = options.groupBy || function () { return 1 }
-    this._catcher = options.error || abend
+    this._catcher = options.catcher || eject
     this._operation = new Operation(options.operation)
 }
 
 Buffer.prototype.write = function (items, callback) {
-    var seen = {}, created = [], buffers = 0, callbacks = 0, fiasco
+    var catcher = this._catcher, seen = {}, created = [], buffers = 0, callbacks = 0, fiasco
 
     callback || (callback = noop)
 
@@ -49,9 +50,10 @@ Buffer.prototype.write = function (items, callback) {
         buffers++
     }, this)
 
+
     created.forEach(function (key) {
         var buffer = this._buffers[key]
-        this.turnstile.enter(this, this._consume, [ buffer, key ], function (error) {
+        this.turnstile.enter(this, this._consume, [ key ], function (error) {
             buffer.callbacks.forEach(function (callback) {
                 done(callback, error)
             })
@@ -61,13 +63,13 @@ Buffer.prototype.write = function (items, callback) {
     this.turnstile.nudge(abend)
 
     function complete (error) {
+        catcher(error)
         if (error) {
-            this._catcher(error)
             if (!fiasco) {
                 fiasco = new Error('write failure')
                 fiasco.errors = []
             }
-            fiasco.push(error)
+            fiasco.errors.push(error)
         }
         if (++callbacks == buffers) {
             if (fiasco) {
@@ -79,10 +81,9 @@ Buffer.prototype.write = function (items, callback) {
     }
 }
 
-Buffer.prototype._consume = cadence(function (async, buffer, key) {
-    if (this._buffers[key] === buffer) {
-        delete this._buffers[key]
-    }
+Buffer.prototype._consume = cadence(function (async, key) {
+    var buffer = this._buffers[key]
+    delete this._buffers[key]
     async([function () {
         this.count -= buffer.values.length
     }], function () {
@@ -132,10 +133,10 @@ Turnstile.prototype._nudge = cadence(function (async) {
             async([function () {
                 work.method.apply(work.object, work.vargs.concat(async()))
             }, function (error) {
-                work.callback.call(work.object, error)
+                (work.callback)(error)
                 return [ loop() ]
             }], [], function (vargs) {
-                work.callback.apply(work.object, [ null ].concat(vargs))
+                work.callback.apply(null, [ null ].concat(vargs))
             })
         })()
     })

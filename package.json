@@ -24,7 +24,8 @@
     "dependencies":
     {
                         "cadence":              "0.0.56",
-                        "abend":                "0.0.0",
+                        "abend":                "0.0.1",
+                        "eject":                "0.0.2",
                         "adhere":               "0.0.1",
                         "operation":            "0.0.1"
     },

@@ -1,7 +1,8 @@
-require('proof')(3, require('cadence/redux')(prove))
+require('proof')(5, require('cadence/redux')(prove))
 
 function prove (async, assert) {
-    var turnstile = require('../../sketch')
+    var turnstile = require('../../sketch'),
+        abend = require('abend')
 
     function Service () {
         this._turnstile = new turnstile.Turnstile
@@ -15,43 +16,14 @@ function prove (async, assert) {
         setImmediate(callback, null, value)
     })
 
+    Service.prototype.error = turnstile.method(function (value, callback) {
+        throw new Error('thrown')
+    })
+
     var service = new Service
 
-    /*
-    Service.prototype.add = turnstile.method(function () {
-        this._turnstile.enter(function () {
-            this._database.begin(async())
-            this._database.add(async())
-            this._database.end(async())
-        })
-    })
-
-    Service.prototype.remove = turnstile.method(cadence(function (async) {
-    }))
-
-    var turnstile = new Turnstile({ workers: 3 })
-    var buffer = new Buffer({
-        key: function (object) { return object.id },
-        consumer: cadence(function (async, items) {
-            async([function () {
-            }, function () {
-                return false
-            }], function () {
-                return true
-            })
-        }),
-        catcher: abend
-    })
-    */
-
-    var consumed = false
-    var buffer = new turnstile.Buffer({
-        turnstile: new turnstile.Turnstile({ workers: 1 }),
-        operation: function (values, callback) {
-            consumed = true
-            assert(values, [ 1, 2, 3 ], 'queued')
-            callback()
-        }
+    new turnstile.Buffer({
+        operation: function () {}
     })
 
     // What does the callback to the enqueuing mean? Can it report an error? If
@@ -95,14 +67,50 @@ function prove (async, assert) {
     // the first exception, what gets reported when we throw. I'm happy with how
     // that sorted out.
 
+    var buffer, consumed = false, waiting = function (values, callback) {
+        assert(values, [ 1, 3, 5 ], 'queued')
+        callback()
+    }
+    function operation (values, callback) {
+        consumed = true
+        waiting(values, callback)
+    }
+
     async(function () {
-        buffer.write([ 1, 2, 3 ], async())
+        buffer = new turnstile.Buffer({
+            turnstile: new turnstile.Turnstile({ workers: 1 }),
+            catcher: function () {},
+            operation: operation
+        })
+        buffer.write([ 1, 3, 5 ], async())
     }, function () {
+        var wait = async()
         assert(consumed, 'done')
+        waiting = function (values, callback) {
+            callback()
+            wait()
+        }
+        buffer.write([ 1, 3, 5 ])
+    }, [function () {
+        buffer = new turnstile.Buffer({
+            turnstile: new turnstile.Turnstile({ workers: 1 }),
+            groupBy: function (value) { return value % 2 },
+            catcher: function () {},
+            operation: operation
+        })
+        var wait
+        waiting = function (values, callback) { throw new Error('errored') }
+        buffer.write([ 1, 2, 3 ], async())
+    }, function (error) {
+        assert(error.message, 'write failure', 'error')
+        assert(error.errors[0].message, 'errored', 'cause')
+    }], function () {
         service.delayed(1, async())
         service.delayed(2, async())
         service.immediate(3, async())
     }, function (one, two, three) {
         assert([ one, two, three ], [ 1, 2, 3 ], 'service')
+    }, function () {
+        service.error(function () {})
     })
 }
