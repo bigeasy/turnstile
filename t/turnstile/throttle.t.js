@@ -1,22 +1,25 @@
 require('proof')(1, require('cadence/redux')(prove))
 
 function prove (async, assert) {
-    var turnstile = require('../../sketch'),
-        abend = require('abend')
+    var turnstile = {
+            Turnstile: require('../..'),
+            throttle: require('../../throttle')
+        }
+    var abend = require('abend')
 
     function Service () {
         this._turnstile = new turnstile.Turnstile
     }
 
-    Service.prototype.immediate = turnstile.method(function (value, callback) {
+    Service.prototype.immediate = turnstile.throttle(function (value, callback) {
         callback(null, value)
     })
 
-    Service.prototype.delayed = turnstile.method(function (value, callback) {
+    Service.prototype.delayed = turnstile.throttle(function (value, callback) {
         setImmediate(callback, null, value)
     })
 
-    Service.prototype.error = turnstile.method(function (value, callback) {
+    Service.prototype.error = turnstile.throttle(function (value, callback) {
         throw new Error('thrown')
     })
 

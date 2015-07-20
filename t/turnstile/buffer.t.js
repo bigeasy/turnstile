@@ -1,8 +1,12 @@
 require('proof')(4, require('cadence/redux')(prove))
 
 function prove (async, assert) {
-    var turnstile = require('../../sketch'),
-        abend = require('abend')
+    var turnstile = {
+            Turnstile: require('../..'),
+            Buffer: require('../../buffer')
+        }
+    var abend = require('abend')
+    console.log(turnstile.Buffer)
 
     new turnstile.Buffer({
         operation: function () {}
