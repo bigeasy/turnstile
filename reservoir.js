@@ -1,4 +1,4 @@
-var cadence = require('cadence/redux'),
+var cadence = require('cadence'),
     abend = require('abend'),
     eject = require('eject'),
     adhere = require('adhere'),

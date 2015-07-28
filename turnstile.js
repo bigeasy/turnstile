@@ -1,4 +1,4 @@
-var cadence = require('cadence/redux')
+var cadence = require('cadence')
 
 function Turnstile (options) {
     options || (options = {})
@@ -31,7 +31,7 @@ Turnstile.prototype._nudge = cadence(function (async) {
         this.working++
         var loop = async(function () {
             if (this.waiting == 0) {
-                return [ loop ]
+                return [ loop.break ]
             }
             var work = this._head.next
             this._head.next = work.next
@@ -41,7 +41,7 @@ Turnstile.prototype._nudge = cadence(function (async) {
                 work.method.apply(work.object, work.vargs.concat(async()))
             }, function (error) {
                 (work.callback)(error)
-                return [ loop() ]
+                return [ loop.continue ]
             }], [], function (vargs) {
                 work.callback.apply(null, [ null ].concat(vargs))
             })
