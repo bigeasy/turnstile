@@ -20,7 +20,6 @@
                         "type": "git",
                         "url": "http://github.com/bigeasy/turnstile.git"
     },
-    "main":             "turnstile.js",
     "dependencies":
     {
                         "cadence":              "0.2.4",

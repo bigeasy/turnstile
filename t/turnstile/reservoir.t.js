@@ -1,10 +1,7 @@
 require('proof')(4, require('cadence')(prove))
 
 function prove (async, assert) {
-    var turnstile = {
-            Turnstile: require('../..'),
-            Reservoir: require('../../reservoir')
-        }
+    var turnstile = require('../..')
     var abend = require('abend')
 
     new turnstile.Reservoir({

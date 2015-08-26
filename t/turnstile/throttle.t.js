@@ -1,10 +1,7 @@
 require('proof')(1, require('cadence')(prove))
 
 function prove (async, assert) {
-    var turnstile = {
-            Turnstile: require('../..'),
-            throttle: require('../../throttle')
-        }
+    var turnstile = require('../..')
     var abend = require('abend')
 
     function Service () {
