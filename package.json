@@ -25,7 +25,7 @@
                         "cadence":              "0.2.5",
                         "abend":                "0.0.1",
                         "eject":                "0.0.2",
-                        "adhere":               "0.0.1",
+                        "adhere":               "0.0.2",
                         "operation":            "0.0.2"
     },
     "devDependencies":
