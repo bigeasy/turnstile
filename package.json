@@ -22,7 +22,7 @@
     },
     "dependencies":
     {
-                        "cadence":              "0.2.5",
+                        "cadence":              "0.4.0",
                         "abend":                "0.0.1",
                         "eject":                "0.0.2",
                         "adhere":               "0.0.2",
