@@ -10,11 +10,7 @@
     "contributors":     [],
     "homepage":         "https://github.com/bigeasy/turnstile",
     "bugs":             "https://github.com/bigeasy/turnstile/issues",
-    "licenses":
-    [{
-                        "type": "MIT",
-                        "url": "http://github.com/bigeasy/turnstile/raw/master/LICENSE"
-    }],
+    "license":          "MIT",
     "repository":
     {
                         "type": "git",
