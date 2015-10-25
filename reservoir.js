@@ -1,24 +1,13 @@
 var cadence = require('cadence'),
     abend = require('abend'),
-    eject = require('eject'),
-    adhere = require('adhere'),
     Operation = require('operation')
 
 function noop () {}
 
-function done (callback, error) {
-    if (error) {
-        callback(error)
-    } else {
-        callback()
-    }
-}
-
 function Reservoir (options) {
-    this._buffers = {}
     this.turnstile = options.turnstile
-    this.groupBy = options.groupBy || function () { return 1 }
-    this._catcher = options.catcher || eject
+    this._groupBy = options.groupBy || function () { return 1 }
+    this._buffers = {}
     this._operation = new Operation(options.operation)
 }
 
@@ -32,7 +21,7 @@ Reservoir.prototype.write = function (items, callback) {
     this.count += items.length
 
     items.forEach(function (item) {
-        var key = this.groupBy(item), buffer
+        var key = (this._groupBy)(item), buffer
 
         seen[key] = true
 
@@ -50,33 +39,19 @@ Reservoir.prototype.write = function (items, callback) {
         buffers++
     }, this)
 
-
     created.forEach(function (key) {
         var buffer = this._buffers[key]
         this.turnstile.enter(this, this._consume, [ key ], function (error) {
-            buffer.callbacks.forEach(function (callback) {
-                done(callback, error)
-            })
+            abend(error)
+            buffer.callbacks.forEach(function (callback) { callback() })
         })
     }, this)
 
     this.turnstile.nudge(abend)
 
-    function complete (error) {
-        catcher(error)
-        if (error) {
-            if (!fiasco) {
-                fiasco = new Error('write failure')
-                fiasco.errors = []
-            }
-            fiasco.errors.push(error)
-        }
+    function complete () {
         if (++callbacks == buffers) {
-            if (fiasco) {
-                callback(fiasco)
-            } else {
-                callback()
-            }
+            callback()
         }
     }
 }
