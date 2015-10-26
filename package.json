@@ -20,10 +20,7 @@
     "dependencies":
     {
                         "cadence":              "0.4.1",
-                        "abend":                "0.0.2",
-                        "eject":                "0.0.2",
-                        "adhere":               "0.0.2",
-                        "operation":            "0.0.2"
+                        "abend":                "0.0.2"
     },
     "devDependencies":
     {
