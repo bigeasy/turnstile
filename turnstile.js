@@ -10,7 +10,7 @@ function Turnstile (options) {
 }
 
 Turnstile.prototype.enter = function (object, method, vargs, callback) {
-    var work = {
+    var task = {
         object: object,
         method: method,
         vargs: vargs,
@@ -18,8 +18,8 @@ Turnstile.prototype.enter = function (object, method, vargs, callback) {
         previous: this._head.previous,
         next: this._head
     }
-    work.next.previous = work
-    work.previous.next = work
+    task.next.previous = task
+    task.previous.next = task
     this.waiting++
 }
 
@@ -35,17 +35,17 @@ Turnstile.prototype._nudge = cadence(function (async) {
             if (this.waiting == 0) {
                 return [ loop.break ]
             }
-            var work = this._head.next
-            this._head.next = work.next
+            var task = this._head.next
+            this._head.next = task.next
             this._head.next.previous = this._head
             this.waiting--
             async([function () {
-                work.method.apply(work.object, work.vargs.concat(async()))
+                task.method.apply(task.object, task.vargs.concat(async()))
             }, function (error) {
-                (work.callback)(error)
+                (task.callback)(error)
                 return [ loop.continue ]
             }], [], function (vargs) {
-                work.callback.apply(null, [ null ].concat(vargs))
+                task.callback.apply(null, [ null ].concat(vargs))
             })
         })()
     })
