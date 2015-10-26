@@ -15,8 +15,8 @@ Turnstile.prototype.enter = function (object, method, vargs, callback) {
         method: method,
         vargs: vargs,
         callback: callback,
-        next: this._head.next,
-        previous: this._head
+        previous: this._head.previous,
+        next: this._head
     }
     work.next.previous = work
     work.previous.next = work
