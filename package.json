@@ -11,6 +11,7 @@
     "homepage":         "https://github.com/bigeasy/turnstile",
     "bugs":             "https://github.com/bigeasy/turnstile/issues",
     "license":          "MIT",
+    "main":             "turnstile",
     "repository":
     {
                         "type": "git",
