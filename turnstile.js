@@ -28,9 +28,9 @@ Turnstile.prototype._nudge = cadence(function (async) {
     async([function () {
         this.working--
     }], function () {
+        this.working++
         setImmediate(async()) // <- price, we only pay it to start work.
     }, function () {
-        this.working++
         var loop = async(function () {
             if (this.waiting == 0) {
                 return [ loop.break ]

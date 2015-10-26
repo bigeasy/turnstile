@@ -1,4 +1,4 @@
-require('proof')(4, require('cadence')(prove))
+require('proof')(2, require('cadence')(prove))
 
 function prove (async, assert) {
     var turnstile = require('../..')
@@ -73,18 +73,5 @@ function prove (async, assert) {
             wait()
         }
         reservoir.write([ 1, 3, 5 ])
-    }, [function () {
-        reservoir = new turnstile.Reservoir({
-            turnstile: new turnstile.Turnstile({ workers: 1 }),
-            groupBy: function (value) { return value % 2 },
-            catcher: function () {},
-            operation: operation
-        })
-        var wait
-        waiting = function (values, callback) { throw new Error('errored') }
-        reservoir.write([ 1, 2, 3 ], async())
-    }, function (error) {
-        assert(error.message, 'write failure', 'error')
-        assert(error.errors[0].message, 'errored', 'cause')
-    }])
+    })
 }
