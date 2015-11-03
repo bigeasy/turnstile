@@ -37,7 +37,7 @@ Turnstile.prototype._stopRejector = function () {
 }
 
 // We use Cadence because of its superior try/catch abilities.
-Turnstile.prototype._nudge = cadence(function (async, counter, stopper) {
+Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     var severed = false
     async([function () {
         this[counter]--
@@ -75,10 +75,10 @@ Turnstile.prototype._nudge = cadence(function (async, counter, stopper) {
 
 Turnstile.prototype.nudge = function (callback) {
     while (this.waiting && this.working < this.workers) {
-        this._nudge('working', '_stopWorker', callback)
+        this._work('working', '_stopWorker', callback)
     }
     if (this.waiting && !this.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
-        this._nudge('rejecting', '_stopRejector', callback)
+        this._work('rejecting', '_stopRejector', callback)
     }
 }
 
