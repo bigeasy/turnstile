@@ -30,7 +30,7 @@ function prove (async, assert) {
     })
     async(function () {
         turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())
-        turnstile.nudge(abend)
+        turnstile.nudge(async())
     }, function (result) {
         assert(result, 2, 'result')
         async([function () {
@@ -38,11 +38,14 @@ function prove (async, assert) {
         }, function (error) {
             assert(error.message, 'badness', 'catch error')
         }])
+        async(function () {
+            turnstile.nudge(async())
+        })
     }, function (result) {
         turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         now = 3
         turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        turnstile.nudge(abend)
+        turnstile.nudge(async())
     }, function (timedout, completed) {
         assert([ timedout, completed ], [ true, false ], 'timedout')
     })
