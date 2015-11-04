@@ -74,11 +74,12 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
 })
 
 Turnstile.prototype.nudge = function (callback) {
-    while (this.waiting && this.working < this.workers) {
+    if (this.waiting && this.working < this.workers) {
         this._work('working', '_stopWorker', callback)
-    }
-    if (this.waiting && !this.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
+    } else if (this.waiting && !this.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
         this._work('rejecting', '_stopRejector', callback)
+    } else {
+        callback()
     }
 }
 

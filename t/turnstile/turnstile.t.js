@@ -43,10 +43,13 @@ function prove (async, assert) {
         })
     }, function (result) {
         turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
+        turnstile.nudge(async())
+        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         now = 3
+        turnstile.nudge(async())
         turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         turnstile.nudge(async())
-    }, function (timedout, completed) {
-        assert([ timedout, completed ], [ true, false ], 'timedout')
+    }, function (timedout1, timedout2, completed) {
+        assert([ timedout1, timedout2, completed ], [ true, true, false ], 'timedout')
     })
 }
