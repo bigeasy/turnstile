@@ -1,4 +1,4 @@
-require('proof')(6, require('cadence')(prove))
+require('proof')(4, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -8,7 +8,7 @@ function prove (async, assert) {
             wait = callback
         },
         goodness: function (state, value, callback) {
-            callback(null, value * 2)
+            setImmediate(callback, null, value * 2)
         },
         badness: function (state, value, callback) {
             callback(new Error('badness'))
@@ -29,34 +29,21 @@ function prove (async, assert) {
         }
     })
     async(function () {
-        var done = async()
-        turnstile.enter(object, object.goodness, [ 1 ], function (error, result) {
-            assert(result, 2, 'result')
-        })
+        turnstile.enter(object, object.goodness, [ 1 ], async())
         turnstile.nudge(abend)
-        turnstile.enter(object, object.badness, [ 1 ], function (error) {
+    }, function (result) {
+        assert(result, 2, 'result')
+        async([function () {
+            turnstile.enter(object, object.badness, [ 1 ], async())
+        }, function (error) {
             assert(error.message, 'badness', 'catch error')
-            done()
-        })
+        }])
+    }, function (result) {
+        turnstile.enter(object, object.timedout, [ 1 ], async())
+        now = 3
+        turnstile.enter(object, object.timedout, [ 1 ], async())
         turnstile.nudge(abend)
-    }, function () {
-        var done = async(), count = 0
-        turnstile.enter(object, object.goodness, [ 1 ], function (error, result) {
-            assert(result, 'timedout')
-            if (++count == 3) done()
-        })
-        turnstile.nudge(abend)
-        turnstile.enter(object, object.timedout, [ 1 ], function (error, result) {
-            assert(result, 'timedout')
-            if (++count == 3) done()
-        })
-        turnstile.nudge(abend)
-        now = 1
-        turnstile.enter(object, object.goodness, [ 1 ], function (error, result) {
-            assert(result, 2, 'did not timeout')
-            if (++count == 3) done()
-        })
-        now = 2
-        turnstile.nudge(abend)
+    }, function (timedout, completed) {
+        assert([ timedout, completed ], [ true, false ], 'timedout')
     })
 }

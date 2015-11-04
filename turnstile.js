@@ -60,7 +60,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             }, [function () {
                 task.method.apply(task.object, [{
                     turnstile: this,
-                    timedout: !! (this._Date.now() - task.when),
+                    timedout: this._Date.now() - task.when > this.timeout,
                     when: task.when
                 }].concat(task.vargs, async()))
             }, function (error) {
