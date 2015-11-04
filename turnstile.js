@@ -1,4 +1,5 @@
 var cadence = require('cadence')
+var Operation = require('operation')
 
 function Turnstile (options) {
     options || (options = {})
@@ -12,11 +13,10 @@ function Turnstile (options) {
     this._Date = options._Date || Date
 }
 
-Turnstile.prototype.enter = function (object, method, vargs, callback) {
+Turnstile.prototype.enter = function (operation, vargs, callback) {
     var task = {
         when: this._Date.now(),
-        object: object,
-        method: method,
+        operation: new Operation(operation),
         vargs: vargs,
         callback: callback,
         previous: this._head.previous,
@@ -58,7 +58,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                     setImmediate(async()) // <- price, we only pay it to start work.
                 }
             }, [function () {
-                task.method.apply(task.object, [{
+                task.operation.apply([{
                     turnstile: this,
                     timedout: this._Date.now() - task.when > this.timeout,
                     when: task.when

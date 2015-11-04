@@ -29,19 +29,19 @@ function prove (async, assert) {
         }
     })
     async(function () {
-        turnstile.enter(object, object.goodness, [ 1 ], async())
+        turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())
         turnstile.nudge(abend)
     }, function (result) {
         assert(result, 2, 'result')
         async([function () {
-            turnstile.enter(object, object.badness, [ 1 ], async())
+            turnstile.enter({ object: object, method: 'badness' }, [ 1 ], async())
         }, function (error) {
             assert(error.message, 'badness', 'catch error')
         }])
     }, function (result) {
-        turnstile.enter(object, object.timedout, [ 1 ], async())
+        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         now = 3
-        turnstile.enter(object, object.timedout, [ 1 ], async())
+        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         turnstile.nudge(abend)
     }, function (timedout, completed) {
         assert([ timedout, completed ], [ true, false ], 'timedout')
