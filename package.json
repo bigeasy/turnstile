@@ -1,6 +1,6 @@
 {
     "name":             "turnstile",
-    "version":          "0.0.19",
+    "version":          "0.0.20",
     "author":           "Alan Gutierrez <alan@prettyrobots.com>",
     "description":      "An evented event queue.",
     "keywords":
