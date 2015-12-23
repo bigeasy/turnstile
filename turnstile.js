@@ -5,12 +5,18 @@ function Turnstile (options) {
     options || (options = {})
     this._head = {}
     this._head.next = this._head.previous = this._head
-    this.working = 0
-    this.workers = options.workers || 1
-    this.waiting = 0
-    this.rejecting = 0
+    this.health = {}
+    this.health.working = 0
+    this.health.waiting = 0
+    this.health.rejecting = 0
+    this.health.workers = options.workers || 1
     this.timeout = options.timeout || Infinity
     this._Date = options._Date || Date
+}
+
+Turnstile.prototype.reconfigure = function (options) {
+    options.workers == null || (this.health.workers = options.workers)
+    options.timeout == null || (this.timeout = options.timeout || Infinity)
 }
 
 Turnstile.prototype.enter = function (operation, vargs, callback) {
@@ -24,15 +30,15 @@ Turnstile.prototype.enter = function (operation, vargs, callback) {
     }
     task.next.previous = task
     task.previous.next = task
-    this.waiting++
+    this.health.waiting++
 }
 
 Turnstile.prototype._stopWorker = function () {
-    return this.waiting == 0
+    return this.health.waiting == 0
 }
 
 Turnstile.prototype._stopRejector = function () {
-    return this.waiting == 0
+    return this.health.waiting == 0
         || this._Date.now() - this._head.next.when <= this.timeout
 }
 
@@ -40,9 +46,9 @@ Turnstile.prototype._stopRejector = function () {
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     var severed = false
     async([function () {
-        this[counter]--
+        this.health[counter]--
     }], function () {
-        this[counter]++
+        this.health[counter]++
     }, function () {
         var loop = async(function () {
             if (this[stopper]()) {
@@ -51,7 +57,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             var task = this._head.next
             this._head.next = task.next
             this._head.next.previous = this._head
-            this.waiting--
+            this.health.waiting--
             async(function () {
                 if (!severed) {
                     severed = true
@@ -74,9 +80,9 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
 })
 
 Turnstile.prototype.nudge = function (callback) {
-    if (this.waiting && this.working < this.workers) {
+    if (this.health.waiting && this.health.working < this.health.workers) {
         this._work('working', '_stopWorker', callback)
-    } else if (this.waiting && !this.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
+    } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
         this._work('rejecting', '_stopRejector', callback)
     } else {
         callback()
