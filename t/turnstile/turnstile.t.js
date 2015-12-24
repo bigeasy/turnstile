@@ -22,7 +22,7 @@ function prove (async, assert) {
     assert(turnstile.health.workers, 1, 'default constructor')
     turnstile = new Turnstile({
         timeout: 1,
-        _Date: {
+        Date: {
             now: function () {
                 return now
             }

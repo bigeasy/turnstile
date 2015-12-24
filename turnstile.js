@@ -11,7 +11,7 @@ function Turnstile (options) {
     this.health.rejecting = 0
     this.health.workers = options.workers || 1
     this.timeout = options.timeout || Infinity
-    this._Date = options._Date || Date
+    this._Date = options.Date || Date
 }
 
 Turnstile.prototype.reconfigure = function (options) {
