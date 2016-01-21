@@ -25,7 +25,7 @@
     "devDependencies":
     {
                         "proof":                "1.0.x",
-                        "abend":                "0.0.3"
+                        "abend":                "1.0.x"
     },
     "scripts":
     {
