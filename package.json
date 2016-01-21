@@ -19,7 +19,7 @@
     },
     "dependencies":
     {
-                        "cadence":              "0.4.3",
+                        "cadence":              "1.0.x",
                         "operation":            "1.0.x"
     },
     "devDependencies":
