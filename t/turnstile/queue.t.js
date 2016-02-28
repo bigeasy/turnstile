@@ -19,7 +19,7 @@ function prove (async, assert) {
     }
     var Turnstile = require('../..')
     var turnstile = new Turnstile, now = 0
-    assert(turnstile.health.workers, 1, 'default constructor')
+    assert(turnstile.health.turnstiles, 1, 'default constructor')
     turnstile = new Turnstile({
         timeout: 1,
         Date: {
@@ -28,8 +28,8 @@ function prove (async, assert) {
             }
         }
     })
-    turnstile.reconfigure({ workers: 1, timeout: 0 })
-    turnstile.reconfigure({ workers: 1, timeout: 1 })
+    turnstile.reconfigure({ turnstiles: 1, timeout: 0 })
+    turnstile.reconfigure({ turnstiles: 1, timeout: 1 })
     turnstile.reconfigure({})
     async(function () {
         turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())

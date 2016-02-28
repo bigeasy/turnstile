@@ -1,25 +1,25 @@
 var cadence = require('cadence')
 var Operation = require('operation')
 
-function Turnstile (options) {
+function Queue (options) {
     options || (options = {})
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {}
-    this.health.working = 0
+    this.health.occupied = 0
     this.health.waiting = 0
     this.health.rejecting = 0
-    this.health.workers = options.workers || 1
+    this.health.turnstiles = options.turnstiles || 1
     this.timeout = options.timeout || Infinity
     this._Date = options.Date || Date
 }
 
-Turnstile.prototype.reconfigure = function (options) {
-    options.workers == null || (this.health.workers = options.workers)
+Queue.prototype.reconfigure = function (options) {
+    options.turnstiles == null || (this.health.turnstiles = options.turnstiles)
     options.timeout == null || (this.timeout = options.timeout || Infinity)
 }
 
-Turnstile.prototype.enter = function (operation, vargs, callback) {
+Queue.prototype.enter = function (operation, vargs, callback) {
     var task = {
         when: this._Date.now(),
         operation: new Operation(operation),
@@ -33,17 +33,17 @@ Turnstile.prototype.enter = function (operation, vargs, callback) {
     this.health.waiting++
 }
 
-Turnstile.prototype._stopWorker = function () {
+Queue.prototype._stopWorker = function () {
     return this.health.waiting == 0
 }
 
-Turnstile.prototype._stopRejector = function () {
+Queue.prototype._stopRejector = function () {
     return this.health.waiting == 0
         || this._Date.now() - this._head.next.when <= this.timeout
 }
 
 // We use Cadence because of its superior try/catch abilities.
-Turnstile.prototype._work = cadence(function (async, counter, stopper) {
+Queue.prototype._work = cadence(function (async, counter, stopper) {
     var severed = false
     async([function () {
         this.health[counter]--
@@ -79,8 +79,8 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     })
 })
 
-Turnstile.prototype.nudge = function (callback) {
-    if (this.health.waiting && this.health.working < this.health.workers) {
+Queue.prototype.nudge = function (callback) {
+    if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
         this._work('working', '_stopWorker', callback)
     } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
         this._work('rejecting', '_stopRejector', callback)
@@ -89,4 +89,4 @@ Turnstile.prototype.nudge = function (callback) {
     }
 }
 
-module.exports = Turnstile
+module.exports = Queue
