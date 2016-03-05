@@ -1,4 +1,4 @@
-require('proof')(4, require('cadence')(prove))
+require('proof')(5, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -31,6 +31,7 @@ function prove (async, assert) {
     turnstile.reconfigure({ turnstiles: 1, timeout: 0 })
     turnstile.reconfigure({ turnstiles: 1, timeout: 1 })
     turnstile.reconfigure({})
+    assert(turnstile.health, { occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1 }, 'health')
     async(function () {
         turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())
         turnstile.nudge(async())

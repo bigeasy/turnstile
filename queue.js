@@ -81,7 +81,7 @@ Queue.prototype._work = cadence(function (async, counter, stopper) {
 
 Queue.prototype.nudge = function (callback) {
     if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
-        this._work('working', '_stopWorker', callback)
+        this._work('occupied', '_stopWorker', callback)
     } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
         this._work('rejecting', '_stopRejector', callback)
     } else {
