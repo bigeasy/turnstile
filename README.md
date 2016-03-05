@@ -35,17 +35,17 @@ You use the queue in this way.
 
 ```javascript
 var service = new Service
-var turnstile = new Turnstile
-turnstile.enter({ object: service, method: 'serve' }, [ 'arg' ], function (error) {
+var queue = new Queue
+queue.enter({ object: service, method: 'serve' }, [ 'arg' ], function (error) {
     if (error) throw error
 })
-turnstile.nudge(function (error) {
+queue.nudge(function (error) {
     if (error) throw error
 })
 ```
 
-The work enters the turnstile using `Turnstile.enter`. It is an operation to
-perform, the argumentst to pass, and a callback when the operation completes.
+The work enters the queue using `Queue.enter`. It is an operation to perform,
+the argumentst to pass, and a callback when the operation completes.
 
 This work gets added to the work queue.
 
