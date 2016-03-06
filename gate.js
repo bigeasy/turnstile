@@ -1,7 +1,7 @@
 var cadence = require('cadence')
 var Operation = require('operation')
 
-function Queue (options) {
+function Gate (options) {
     options || (options = {})
     this._head = {}
     this._head.next = this._head.previous = this._head
@@ -14,12 +14,12 @@ function Queue (options) {
     this._Date = options.Date || Date
 }
 
-Queue.prototype.reconfigure = function (options) {
+Gate.prototype.reconfigure = function (options) {
     options.turnstiles == null || (this.health.turnstiles = options.turnstiles)
     options.timeout == null || (this.timeout = options.timeout || Infinity)
 }
 
-Queue.prototype.enter = function (operation, vargs, callback) {
+Gate.prototype.enter = function (operation, vargs, callback) {
     var task = {
         when: this._Date.now(),
         operation: new Operation(operation),
@@ -33,17 +33,17 @@ Queue.prototype.enter = function (operation, vargs, callback) {
     this.health.waiting++
 }
 
-Queue.prototype._stopWorker = function () {
+Gate.prototype._stopWorker = function () {
     return this.health.waiting == 0
 }
 
-Queue.prototype._stopRejector = function () {
+Gate.prototype._stopRejector = function () {
     return this.health.waiting == 0
         || this._Date.now() - this._head.next.when <= this.timeout
 }
 
 // We use Cadence because of its superior try/catch abilities.
-Queue.prototype._work = cadence(function (async, counter, stopper) {
+Gate.prototype._work = cadence(function (async, counter, stopper) {
     var severed = false
     async([function () {
         this.health[counter]--
@@ -79,7 +79,7 @@ Queue.prototype._work = cadence(function (async, counter, stopper) {
     })
 })
 
-Queue.prototype.nudge = function (callback) {
+Gate.prototype.nudge = function (callback) {
     if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
         this._work('occupied', '_stopWorker', callback)
     } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
@@ -89,4 +89,4 @@ Queue.prototype.nudge = function (callback) {
     }
 }
 
-module.exports = Queue
+module.exports = Gate
