@@ -17,10 +17,10 @@ function prove (async, assert) {
             callback(null, state.timedout)
         }
     }
-    var Turnstile = require('../..')
-    var turnstile = new Turnstile, now = 0
-    assert(turnstile.health.turnstiles, 1, 'default constructor')
-    turnstile = new Turnstile({
+    var Turnstiles = require('../..')
+    var turnstiles = new Turnstiles, now = 0
+    assert(turnstiles.health.turnstiles, 1, 'default constructor')
+    turnstiles = new Turnstiles({
         timeout: 1,
         Date: {
             now: function () {
@@ -28,31 +28,31 @@ function prove (async, assert) {
             }
         }
     })
-    turnstile.reconfigure({ turnstiles: 1, timeout: 0 })
-    turnstile.reconfigure({ turnstiles: 1, timeout: 1 })
-    turnstile.reconfigure({})
-    assert(turnstile.health, { occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1 }, 'health')
+    turnstiles.reconfigure({ turnstiles: 1, timeout: 0 })
+    turnstiles.reconfigure({ turnstiles: 1, timeout: 1 })
+    turnstiles.reconfigure({})
+    assert(turnstiles.health, { occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1 }, 'health')
     async(function () {
-        turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())
-        turnstile.nudge(async())
+        turnstiles.enter({ object: object, method: 'goodness' }, [ 1 ], async())
+        turnstiles.nudge(async())
     }, function (result) {
         assert(result, 2, 'result')
         async([function () {
-            turnstile.enter({ object: object, method: 'badness' }, [ 1 ], async())
+            turnstiles.enter({ object: object, method: 'badness' }, [ 1 ], async())
         }, function (error) {
             assert(error.message, 'badness', 'catch error')
         }])
         async(function () {
-            turnstile.nudge(async())
+            turnstiles.nudge(async())
         })
     }, function (result) {
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        turnstile.nudge(async())
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
+        turnstiles.enter({ object: object, method: 'timedout' }, [ 1 ], async())
+        turnstiles.nudge(async())
+        turnstiles.enter({ object: object, method: 'timedout' }, [ 1 ], async())
         now = 3
-        turnstile.nudge(async())
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        turnstile.nudge(async())
+        turnstiles.nudge(async())
+        turnstiles.enter({ object: object, method: 'timedout' }, [ 1 ], async())
+        turnstiles.nudge(async())
     }, function (timedout1, timedout2, completed) {
         assert([ timedout1, timedout2, completed ], [ true, true, false ], 'timedout')
     })
