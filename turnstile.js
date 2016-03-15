@@ -1,7 +1,7 @@
 var cadence = require('cadence')
 var Operation = require('operation')
 
-function Turnstiles (options) {
+function Turnstile (options) {
     options || (options = {})
     this._head = {}
     this._head.next = this._head.previous = this._head
@@ -14,12 +14,12 @@ function Turnstiles (options) {
     this._Date = options.Date || Date
 }
 
-Turnstiles.prototype.reconfigure = function (options) {
+Turnstile.prototype.reconfigure = function (options) {
     options.turnstiles == null || (this.health.turnstiles = options.turnstiles)
     options.timeout == null || (this.timeout = options.timeout || Infinity)
 }
 
-Turnstiles.prototype.enter = function (operation, vargs, callback) {
+Turnstile.prototype.enter = function (operation, vargs, callback) {
     var task = {
         when: this._Date.now(),
         operation: new Operation(operation),
@@ -33,17 +33,17 @@ Turnstiles.prototype.enter = function (operation, vargs, callback) {
     this.health.waiting++
 }
 
-Turnstiles.prototype._stopWorker = function () {
+Turnstile.prototype._stopWorker = function () {
     return this.health.waiting == 0
 }
 
-Turnstiles.prototype._stopRejector = function () {
+Turnstile.prototype._stopRejector = function () {
     return this.health.waiting == 0
         || this._Date.now() - this._head.next.when <= this.timeout
 }
 
 // We use Cadence because of its superior try/catch abilities.
-Turnstiles.prototype._work = cadence(function (async, counter, stopper) {
+Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     var severed = false
     async([function () {
         this.health[counter]--
@@ -79,7 +79,7 @@ Turnstiles.prototype._work = cadence(function (async, counter, stopper) {
     })
 })
 
-Turnstiles.prototype.nudge = function (callback) {
+Turnstile.prototype.nudge = function (callback) {
     if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
         this._work('occupied', '_stopWorker', callback)
     } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when > this.timeout) {
@@ -89,4 +89,4 @@ Turnstiles.prototype.nudge = function (callback) {
     }
 }
 
-module.exports = Turnstiles
+module.exports = Turnstile
