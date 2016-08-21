@@ -17,7 +17,7 @@ function prove (async, assert) {
             callback(null, state.timedout)
         }
     }
-    var Turnstile = require('../..')
+    var Turnstile = require('..')
     var turnstile = new Turnstile, now = 0
     assert(turnstile.health.turnstiles, 1, 'default constructor')
     turnstile = new Turnstile({
