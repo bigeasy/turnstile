@@ -1,36 +1,36 @@
 {
-    "name":                  "turnstile",
-    "version":               "2.0.4",
-    "keywords":
-    [
-                             "queue", "events"
-    ],
+    "name":                 "turnstile",
+    "version":              "2.0.4",
     "description":
 
       "An evented event queue.",
 
-    "author":                "Alan Gutierrez <alan@prettyrobots.com>",
-    "homepage":              "https://github.com/bigeasy/turnstile",
-    "bugs":                  "https://github.com/bigeasy/turnstile/issues",
-    "license":               "MIT",
+    "keywords":
+    [
+                            "queue", "events"
+    ],
+    "author":               "Alan Gutierrez <alan@prettyrobots.com>",
+    "homepage":             "https://github.com/bigeasy/turnstile",
+    "bugs":                 "https://github.com/bigeasy/turnstile/issues",
+    "license":              "MIT",
     "repository":
     {
-                             "type": "git",
-                             "url": "http://github.com/bigeasy/turnstile.git"
+                            "type": "git",
+                            "url": "http://github.com/bigeasy/turnstile.git"
     },
     "dependencies":
     {
-                             "cadence":                     "1.0.x",
-                             "operation":                   "1.2.x"
+                            "cadence":                      "1.0.x",
+                            "operation":                    "1.2.x"
     },
     "devDependencies":
     {
-                             "abend":                       "1.0.x",
-                             "proof":                       "1.1.x"
+                            "abend":                        "1.0.x",
+                            "proof":                        "1.1.x"
     },
-    "main":                  "turnstile",
+    "main":                 "turnstile",
     "scripts":
     {
-                             "test": "proof platform win32 && proof test */*.t.js || t/test"
+                            "test": "proof platform win32 && proof test */*.t.js || t/test"
     }
 }
