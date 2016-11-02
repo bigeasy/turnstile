@@ -1,4 +1,4 @@
-require('proof/redux')(7, require('cadence')(prove))
+require('proof/redux')(5, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -55,16 +55,5 @@ function prove (async, assert) {
         turnstile.nudge(async())
     }, function (timedout1, timedout2, completed) {
         assert([ timedout1, timedout2, completed ], [ true, true, false ], 'timedout')
-        var called = false
-        turnstile = new Turnstile({ immediate: true })
-        turnstile.enter(function (state, callback) {
-            called = true
-            callback()
-        }, [], function () {
-            assert(called, 'immediate callback')
-        })
-        turnstile.nudge(function () {
-            assert(called, 'immediate nudge')
-        })
     })
 }

@@ -1,10 +1,6 @@
 var cadence = require('cadence')
 var Operation = require('operation')
 
-function immediate (callback) {
-    callback()
-}
-
 function Turnstile (options) {
     options || (options = {})
     this._head = {}
@@ -16,7 +12,6 @@ function Turnstile (options) {
     this.health.turnstiles = options.turnstiles || 1
     this.timeout = options.timeout || Infinity
     this._Date = options.Date || Date
-    this._setImmediate = options.immediate ? immediate : setImmediate
 }
 
 Turnstile.prototype.reconfigure = function (options) {
@@ -66,7 +61,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             async(function () {
                 if (!severed) {
                     severed = true
-                    this._setImmediate.call(null, async()) // <- price, we only pay it to start work.
+                    setImmediate(async()) // <- price, we only pay it to start work.
                 }
             }, [function () {
                 task.operation.apply([{
