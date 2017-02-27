@@ -1,4 +1,4 @@
-require('proof/redux')(1, require('cadence')(prove))
+require('proof/redux')(2, require('cadence')(prove))
 
 function prove (async, assert) {
     var Turnstile = { Check: require('../check') }
