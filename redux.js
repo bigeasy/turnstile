@@ -3,7 +3,7 @@ var cadence = require('cadence')
 var abend = require('abend')
 
 // Common utilities.
-var coalesce = require('nascent.coalesce')
+var coalesce = require('extant')
 
 // Create bound user callback.
 var Operation = require('operation/redux')
