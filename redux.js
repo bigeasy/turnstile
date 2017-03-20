@@ -30,7 +30,7 @@ function Turnstile () {
     this.timeout = coalesce(options.timeout, Infinity)
     this._operation = operation
     this._Date = coalesce(options.Date, Date)
-    this._setImmediate = coalesce(options.setImmediate, true)
+    this.setImmediate = coalesce(options.setImmediate, true)
 }
 
 Turnstile.prototype.reconfigure = function (options) {
@@ -83,7 +83,7 @@ Turnstile.prototype._stopRejector = function () {
 
 // We use Cadence because of its superior try/catch abilities.
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
-    var severed = ! this._setImmediate
+    var severed = ! this.setImmediate
     async([function () {
         this.health[counter]--
     }], function () {
