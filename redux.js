@@ -43,10 +43,14 @@ Turnstile.prototype.reconfigure = function (options) {
 
 //
 Turnstile.prototype._enqueue = function (work, callback) {
+}
+
+Turnstile.prototype.enter = function (envelope) {
     var task = {
         when: this._Date.now(),
-        body: work,
-        callback: callback,
+        body: envelope.body,
+        started: coalesce(envelope.started, abend),
+        completed: coalesce(envelope.completed, abend),
         previous: this._head.previous,
         next: this._head
     }
@@ -56,12 +60,16 @@ Turnstile.prototype._enqueue = function (work, callback) {
 }
 
 Turnstile.prototype.enqueue = function (work, callback) {
-    this._enqueue(work, callback)
+    this.enter({
+        completed: callback,
+        body: work
+    })
     this._nudge(abend)
 }
 
 Turnstile.prototype.push = function (work) {
-    this.enqueue(work, abend)
+    this.enter({ body: work })
+    this._nudge(abend)
 }
 
 Turnstile.prototype._stopWorker = function () {
@@ -89,6 +97,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             this._head.next = task.next
             this._head.next.previous = this._head
             this.health.waiting--
+            task.started.call(null)
             async(function () {
                 if (!severed) {
                     severed = true
@@ -103,10 +112,10 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                     body: task.body
                 }, async())
             }, function (error) {
-                (task.callback)(error)
+                task.completed.call(null, error)
                 return [ loop.continue ]
             }], [], function (vargs) {
-                task.callback.apply(null, [ null ].concat(vargs))
+                task.completed.apply(null, [ null ].concat(vargs))
             })
         })()
     })
