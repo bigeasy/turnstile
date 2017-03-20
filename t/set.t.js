@@ -16,7 +16,7 @@ function prove (async, assert) {
         }
     }
 
-    var set = new Turnstile.Set({ object: object, method: 'method' }, {
+    var set = new Turnstile.Set(object, 'method', {
         Date: { now: function () { return 0 } }
     })
 

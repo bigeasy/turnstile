@@ -1,15 +1,16 @@
-var Operation = require('operation/redux')
+var Operation = require('operation/variadic')
 var Turnstile = require('./redux')
 
 function Set (operation, options) {
-    this._operation = Operation(operation)
+    var vargs = Array.prototype.slice.call(arguments)
+    this._operation = Operation(vargs)
     this._sets = {}
-    this.turnstile = new Turnstile({ object: this, method: '_pop' }, options)
+    this.turnstile = new Turnstile(this, '_pop', vargs.shift())
 }
 
 Set.prototype._pop = function (envelope, callback) {
     delete this._sets[envelope.body]
-    this._operation(envelope, callback)
+    this._operation.call(null, envelope, callback)
 }
 
 Set.prototype._callback = function (key, callback) {

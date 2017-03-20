@@ -6,14 +6,16 @@ var abend = require('abend')
 var coalesce = require('extant')
 
 // Create bound user callback.
-var Operation = require('operation/redux')
+var Operation = require('operation/variadic')
 
 // Create a turnstile that will invoke the given operation with each entry
 // pushed into the work queue.
 
 //
-function Turnstile (operation, options) {
-    options || (options = {})
+function Turnstile () {
+    var vargs = Array.prototype.slice.call(arguments)
+    var operation = Operation(vargs)
+    var options = vargs.shift() || {}
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {
@@ -26,7 +28,7 @@ function Turnstile (operation, options) {
     this.health.waiting = 0
     this.health.rejecting = 0
     this.timeout = coalesce(options.timeout, Infinity)
-    this._operation = Operation(operation)
+    this._operation = operation
     this._Date = coalesce(options.Date, Date)
     this._setImmediate = coalesce(options.setImmediate, true)
 }

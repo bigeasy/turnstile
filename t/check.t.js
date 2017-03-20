@@ -14,7 +14,7 @@ function prove (async, assert) {
             callback(null, 1)
         }
     }
-    var check = new Turnstile.Check({ object: object, method: 'method' }, {
+    var check = new Turnstile.Check(object, 'method', {
         Date: { now: function () { return 0 } }
     })
     async(function () {

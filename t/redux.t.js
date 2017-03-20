@@ -65,7 +65,7 @@ function prove (async, assert) {
             callback.apply(null, expected.vargs || [])
         }
     }
-    var turnstile = new Turnstile({ object: object, method: 'method' })
+    var turnstile = new Turnstile(object, 'method')
     assert({
         timeout: turnstile.timeout,
         health: turnstile.health
@@ -86,9 +86,7 @@ function prove (async, assert) {
         }
     }, 'reconfigure')
     var now = 0
-    var turnstile = new Turnstile({
-        object: object, method: 'method'
-    }, {
+    var turnstile = new Turnstile(object, 'method', {
         Date: { now: function () { return now } },
         timeout: 1
     })

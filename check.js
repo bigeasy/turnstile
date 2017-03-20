@@ -1,9 +1,10 @@
 var Turnstile = { Set: require('./set') }
-var Operation = require('operation/redux')
+var Operation = require('operation/variadic')
 
-function Check (operation, options) {
-    this._set = new Turnstile.Set({ object: this, method: '_check' }, options)
-    this._operation = Operation(operation)
+function Check () {
+    var vargs = Array.prototype.slice.call(arguments)
+    this._operation = Operation(vargs)
+    this._set = new Turnstile.Set(this, '_check', vargs.shift())
     this.turnstile = this._set.turnstile
 }
 
