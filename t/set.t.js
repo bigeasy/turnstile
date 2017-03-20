@@ -9,6 +9,7 @@ function prove (async, assert) {
                 module: 'turnstile',
                 method: 'enter',
                 when: 0,
+                waited: 0,
                 timedout: false,
                 body: 'a'
             }, 'key')

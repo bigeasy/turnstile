@@ -104,11 +104,13 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                     setImmediate(async()) // <- price, we only pay it to start work.
                 }
             }, [function () {
+                var waited = this._Date.now() - task.when
                 this._operation.call(null, {
                     module: 'turnstile',
                     method: 'enter',
                     when: task.when,
-                    timedout: this._Date.now() - task.when >= this.timeout,
+                    waited: waited,
+                    timedout: waited >= this.timeout,
                     body: task.body
                 }, async())
             }, function (error) {

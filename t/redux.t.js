@@ -7,6 +7,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 0,
+            waited: 0,
             timedout: false,
             body: 1
         },
@@ -16,6 +17,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 0,
+            waited: 0,
             timedout: false,
             body: 2
         },
@@ -25,6 +27,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 0,
+            waited: 0,
             timedout: false,
             body: 3
         },
@@ -35,6 +38,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 0,
+            waited: 1,
             timedout: true,
             body: 4
         },
@@ -44,6 +48,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 0,
+            waited: 1,
             timedout: true,
             body: 5
         },
@@ -53,6 +58,7 @@ function prove (async, assert) {
             module: 'turnstile',
             method: 'enter',
             when: 1,
+            waited: 0,
             timedout: false,
             body: 6
         },
