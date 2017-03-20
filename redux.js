@@ -57,6 +57,7 @@ Turnstile.prototype.enter = function (envelope) {
     task.next.previous = task
     task.previous.next = task
     this.health.waiting++
+    this._nudge(abend)
 }
 
 Turnstile.prototype.enqueue = function (work, callback) {
@@ -64,12 +65,10 @@ Turnstile.prototype.enqueue = function (work, callback) {
         completed: callback,
         body: work
     })
-    this._nudge(abend)
 }
 
 Turnstile.prototype.push = function (work) {
     this.enter({ body: work })
-    this._nudge(abend)
 }
 
 Turnstile.prototype._stopWorker = function () {
