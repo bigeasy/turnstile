@@ -1,6 +1,5 @@
 var coalesce = require('extant')
 var Operation = require('operation/variadic')
-var Turnstile = require('./redux')
 var abend = require('abend')
 
 function Queue () {

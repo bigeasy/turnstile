@@ -1,59 +1,142 @@
-require('proof/redux')(5, require('cadence')(prove))
+require('proof/redux')(9, require('cadence')(prove))
 
 function prove (async, assert) {
-    var abend = require('abend')
-    var wait
+    var Turnstile = require('..')
+    var Operation = require('operation/variadic')
+    var expectations = [{
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 0,
+            timedout: false,
+            body: 1
+        },
+        message: 'push'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 0,
+            timedout: false,
+            body: 2
+        },
+        message: 'enqueue'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 0,
+            timedout: false,
+            body: 3
+        },
+        message: 'error',
+        vargs: [ new Error('thrown') ]
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 1,
+            timedout: true,
+            body: 4
+        },
+        message: 'did not timeout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 1,
+            timedout: true,
+            body: 5
+        },
+        message: 'enqueue'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 6
+        },
+        message: 'enqueue'
+    }]
     var object = {
-        block: function (state, value, callback) {
-            wait = callback
-        },
-        goodness: function (state, value, callback) {
-            setImmediate(callback, null, value * 2)
-        },
-        badness: function (state, value, callback) {
-            callback(new Error('badness'))
-        },
-        timedout: function (state, value, callback) {
-            callback(null, state.timedout)
+        method: function (envelope, callback) {
+            var expected = expectations.shift()
+            assert(envelope, expected.envelope, expected.message)
+            callback.apply(null, expected.vargs || [])
         }
     }
-    var Turnstile = require('..')
-    var turnstile = new Turnstile, now = 0
-    assert(turnstile.health.turnstiles, 1, 'default constructor')
-    turnstile = new Turnstile({
-        timeout: 1,
-        Date: {
-            now: function () {
-                return now
-            }
+    var turnstile = new Turnstile
+    assert({
+        timeout: turnstile.timeout,
+        health: turnstile.health
+    }, {
+        timeout: Infinity,
+        health: {
+            occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1
         }
+    }, 'defaults')
+    turnstile.reconfigure({ timeout: 1, turnstiles: 2 })
+    assert({
+        timeout: turnstile.timeout,
+        health: turnstile.health
+    }, {
+        timeout: 1,
+        health: {
+            occupied: 0, waiting: 0, rejecting: 0, turnstiles: 2
+        }
+    }, 'reconfigure')
+    var now = 0
+    var turnstile = new Turnstile({
+        Date: { now: function () { return now } },
+        timeout: 1
     })
-    turnstile.reconfigure({ turnstiles: 1, timeout: 0 })
-    turnstile.reconfigure({ turnstiles: 1, timeout: 1 })
-    turnstile.reconfigure({})
-    assert(turnstile.health, { occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1 }, 'health')
     async(function () {
-        turnstile.enter({ object: object, method: 'goodness' }, [ 1 ], async())
-        turnstile.nudge(async())
-    }, function (result) {
-        assert(result, 2, 'result')
-        async([function () {
-            turnstile.enter({ object: object, method: 'badness' }, [ 1 ], async())
-        }, function (error) {
-            assert(error.message, 'badness', 'catch error')
-        }])
-        async(function () {
-            turnstile.nudge(async())
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            body: 1
         })
-    }, function (result) {
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        turnstile.nudge(async())
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        now = 3
-        turnstile.nudge(async())
-        turnstile.enter({ object: object, method: 'timedout' }, [ 1 ], async())
-        turnstile.nudge(async())
-    }, function (timedout1, timedout2, completed) {
-        assert([ timedout1, timedout2, completed ], [ true, true, false ], 'timedout')
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 2
+        })
+    }, [function () {
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 3
+        })
+    }, function (error) {
+        assert(error.message, 'thrown', 'caught')
+    }], function () {
+        turnstile.enter({               // starts loop
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 4
+        })
+        turnstile.enter({               // waits on queue
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 5
+        })
+        now++
+        turnstile.enter({               // sees that waiting has expired, starts rejector
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 6
+        })
     })
 }

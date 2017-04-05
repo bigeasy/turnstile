@@ -1,7 +1,7 @@
 require('proof/redux')(2, require('cadence')(prove))
 
 function prove (async, assert) {
-    var Turnstile = require('../redux')
+    var Turnstile = require('..')
     Turnstile.Check = require('../check')
     var object = {
         method: function (envelope, callback) {

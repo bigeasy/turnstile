@@ -1,5 +1,4 @@
 var coalesce = require('extant')
-var Turnstile = require('./redux')
 var Operation = require('operation/variadic')
 
 function Set () {
