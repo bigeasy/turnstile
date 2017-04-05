@@ -6,7 +6,6 @@ var abend = require('abend')
 var coalesce = require('extant')
 
 // Create bound user callback.
-var Operation = require('operation/variadic')
 
 // Create a turnstile that will invoke the given operation with each entry
 // pushed into the work queue.
@@ -37,7 +36,8 @@ Turnstile.prototype.reconfigure = function (options) {
 
 Turnstile.prototype.enter = function (envelope) {
     var task = {
-        operation: envelope.operation,
+        object: envelope.object,
+        method: envelope.method,
         when: this._Date.now(),
         body: envelope.body,
         started: coalesce(envelope.started, abend),
@@ -84,7 +84,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                 }
             }, [function () {
                 var waited = this._Date.now() - task.when
-                task.operation.call(null, {
+                task.method.call(task.object, {
                     module: 'turnstile',
                     method: 'enter',
                     when: task.when,

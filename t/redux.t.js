@@ -99,17 +99,20 @@ function prove (async, assert) {
     })
     async(function () {
         turnstile.enter({
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             body: 1
         })
         turnstile.enter({
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             completed: async(),
             body: 2
         })
     }, [function () {
         turnstile.enter({
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             completed: async(),
             body: 3
         })
@@ -117,18 +120,21 @@ function prove (async, assert) {
         assert(error.message, 'thrown', 'caught')
     }], function () {
         turnstile.enter({               // starts loop
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             completed: async(),
             body: 4
         })
         turnstile.enter({               // waits on queue
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             completed: async(),
             body: 5
         })
         now++
         turnstile.enter({               // sees that waiting has expired, starts rejector
-            operation: Operation([ object, 'method' ]),
+            object: object,
+            method: object.method,
             completed: async(),
             body: 6
         })

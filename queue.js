@@ -8,7 +8,6 @@ function Queue () {
     this._operation = Operation(vargs)
     this._sets = {}
     this.turnstile = vargs.shift()
-    this._bound = Operation([ this, '_shift' ])
 }
 
 Queue.prototype._shift = function (envelope, callback) {
@@ -21,7 +20,8 @@ Queue.prototype.push = function (value) {
 
 Queue.prototype.enqueue = function (value, callback) {
     this.turnstile.enter({
-        operation: this._bound,
+        object: this,
+        method: this._shift,
         body: value,
         completed: callback
     })

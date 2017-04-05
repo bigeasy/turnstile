@@ -1,13 +1,12 @@
 var coalesce = require('extant')
-var Operation = require('operation/variadic')
 var Turnstile = require('./redux')
+var Operation = require('operation/variadic')
 
 function Set () {
     var vargs = Array.prototype.slice.call(arguments)
     this._operation = Operation(vargs)
     this._sets = {}
     this.turnstile = vargs.shift()
-    this._bound = Operation([ this, '_pop' ])
 }
 
 Set.prototype._pop = function (envelope, callback) {
@@ -30,7 +29,8 @@ Set.prototype.add = function (key, callback) {
         }
         this._callback(key, callback)
         this.turnstile.enter({
-            operation: this._bound,
+            object: this,
+            method: this._pop,
             body: key,
             completed: function () {
                 var vargs = Array.prototype.slice.call(arguments)
