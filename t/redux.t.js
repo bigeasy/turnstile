@@ -2,6 +2,7 @@ require('proof/redux')(9, require('cadence')(prove))
 
 function prove (async, assert) {
     var Turnstile = require('../redux')
+    var Operation = require('operation/variadic')
     var expectations = [{
         envelope: {
             module: 'turnstile',
@@ -71,7 +72,7 @@ function prove (async, assert) {
             callback.apply(null, expected.vargs || [])
         }
     }
-    var turnstile = new Turnstile(object, 'method')
+    var turnstile = new Turnstile
     assert({
         timeout: turnstile.timeout,
         health: turnstile.health
@@ -92,21 +93,44 @@ function prove (async, assert) {
         }
     }, 'reconfigure')
     var now = 0
-    var turnstile = new Turnstile(object, 'method', {
+    var turnstile = new Turnstile({
         Date: { now: function () { return now } },
         timeout: 1
     })
     async(function () {
-        turnstile.push(1)
-        turnstile.enqueue(2, async())
+        turnstile.enter({
+            operation: Operation([ object, 'method' ]),
+            body: 1
+        })
+        turnstile.enter({
+            operation: Operation([ object, 'method' ]),
+            completed: async(),
+            body: 2
+        })
     }, [function () {
-        turnstile.enqueue(3, async())
+        turnstile.enter({
+            operation: Operation([ object, 'method' ]),
+            completed: async(),
+            body: 3
+        })
     }, function (error) {
         assert(error.message, 'thrown', 'caught')
     }], function () {
-        turnstile.enqueue(4, async())   // starts loop
-        turnstile.enqueue(5, async())   // waits on queue
+        turnstile.enter({               // starts loop
+            operation: Operation([ object, 'method' ]),
+            completed: async(),
+            body: 4
+        })
+        turnstile.enter({               // waits on queue
+            operation: Operation([ object, 'method' ]),
+            completed: async(),
+            body: 5
+        })
         now++
-        turnstile.enqueue(6, async())   // sees that waiting has expired, starts rejector
+        turnstile.enter({               // sees that waiting has expired, starts rejector
+            operation: Operation([ object, 'method' ]),
+            completed: async(),
+            body: 6
+        })
     })
 }

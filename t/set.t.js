@@ -1,7 +1,8 @@
 require('proof/redux')(2, require('cadence')(prove))
 
 function prove (async, assert) {
-    var Turnstile = { Set: require('../set') }
+    var Turnstile = require('../redux')
+    Turnstile.Set = require('../set')
 
     var object = {
         method: function (envelope, callback) {
@@ -17,9 +18,8 @@ function prove (async, assert) {
         }
     }
 
-    var set = new Turnstile.Set(object, 'method', {
-        Date: { now: function () { return 0 } }
-    })
+    var turnstile = new Turnstile({ Date: { now: function () { return 0 } } })
+    var set = new Turnstile.Set(object, 'method', turnstile)
 
     async(function () {
         set.add('a')

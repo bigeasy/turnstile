@@ -12,10 +12,8 @@ var Operation = require('operation/variadic')
 // pushed into the work queue.
 
 //
-function Turnstile () {
-    var vargs = Array.prototype.slice.call(arguments)
-    var operation = Operation(vargs)
-    var options = vargs.shift() || {}
+function Turnstile (options) {
+    options || (options = {})
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {
@@ -28,7 +26,6 @@ function Turnstile () {
     this.health.waiting = 0
     this.health.rejecting = 0
     this.timeout = coalesce(options.timeout, Infinity)
-    this._operation = operation
     this._Date = coalesce(options.Date, Date)
     this.setImmediate = coalesce(options.setImmediate, true)
 }
@@ -38,15 +35,9 @@ Turnstile.prototype.reconfigure = function (options) {
     options.timeout == null || (this.timeout = options.timeout)
 }
 
-// Push an entry into the work queue along with a callback. The callback is the
-// difference between a work queue and a message queue.
-
-//
-Turnstile.prototype._enqueue = function (work, callback) {
-}
-
 Turnstile.prototype.enter = function (envelope) {
     var task = {
+        operation: envelope.operation,
         when: this._Date.now(),
         body: envelope.body,
         started: coalesce(envelope.started, abend),
@@ -58,17 +49,6 @@ Turnstile.prototype.enter = function (envelope) {
     task.previous.next = task
     this.health.waiting++
     this._nudge(abend)
-}
-
-Turnstile.prototype.enqueue = function (work, callback) {
-    this.enter({
-        completed: callback,
-        body: work
-    })
-}
-
-Turnstile.prototype.push = function (work) {
-    this.enter({ body: work })
 }
 
 Turnstile.prototype._stopWorker = function () {
@@ -104,7 +84,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                 }
             }, [function () {
                 var waited = this._Date.now() - task.when
-                this._operation.call(null, {
+                task.operation.call(null, {
                     module: 'turnstile',
                     method: 'enter',
                     when: task.when,
