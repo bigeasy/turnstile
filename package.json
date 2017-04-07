@@ -22,7 +22,7 @@
     {
                             "abend":                        "1.0.x",
                             "cadence":                      "1.0.x",
-                            "extant":                       "1.0.0",
+                            "extant":                       "1.0.x",
                             "operation":                    "1.2.x"
     },
     "devDependencies":
