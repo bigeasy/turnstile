@@ -109,6 +109,10 @@ function prove (async, assert) {
             completed: async(),
             body: 2
         })
+        turnstile.enter({
+            checkpoint: true,
+            completed: async()
+        })
     }, [function () {
         turnstile.enter({
             object: object,

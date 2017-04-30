@@ -26,4 +26,8 @@ Queue.prototype.enqueue = function (value, callback) {
     })
 }
 
+Queue.prototype.wait = function (callback) {
+    this.turnstile.enter({ checkpoint: true, completed: callback })
+}
+
 module.exports = Queue

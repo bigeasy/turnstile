@@ -36,10 +36,12 @@ Turnstile.prototype.reconfigure = function (options) {
 
 Turnstile.prototype.enter = function (envelope) {
     var task = {
-        object: envelope.object,
-        method: envelope.method,
+        object: coalesce(envelope.object),
+        method: envelope.checkpoint
+            ? function (envelope, callback) { callback() }
+            : envelope.method,
         when: this._Date.now(),
-        body: envelope.body,
+        body: coalesce(envelope.body),
         started: coalesce(envelope.started, abend),
         completed: coalesce(envelope.completed, abend),
         previous: this._head.previous,

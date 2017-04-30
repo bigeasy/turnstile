@@ -39,6 +39,7 @@ function prove (async, assert) {
     async(function () {
         queue.push(1)
         queue.enqueue(2, async())
+        queue.wait(async())
     }, function (result) {
         assert(result, 2, 'returned')
     })
