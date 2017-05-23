@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Ascension</title>
+  <link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Sorts+Mill+Goudy|Mate|Oxygen+Mono|Offside|Raleway:400,700" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Sorts+Mill+Goudy">
+  <link rel="stylesheet" type="text/css" href="css/ascetic.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+</html>
+<body><a href="https://github.com/bigeasy/ascension/"><img style="position: fixed; top: 0; left: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_left_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+  <div class="container">
+    <div class="unit welcome">
+      <h1>Ascension</h1>
+      <!-- todo: code font is too small for body text font-->
+    </div>
+    <div class="unit description markdown include" data-file="index.md"><p>Look at the <a href="./docco/">Docco</a> for now.</p>
+<p>Ascension is a comparator builder. It builds comparators for composite keys. I
+created it because I find myself writing this function over and over again.</p>
+<pre><code class="lang-javascript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">compare</span> (<span class="hljs-params">left, right</span>) </span>{
+    <span class="hljs-keyword">var</span> compare = left.lastName &lt; right.lastName
+                ? <span class="hljs-number">-1</span> : left.lastName &gt; right.lastName
+                     ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>
+    <span class="hljs-keyword">if</span> (compare != <span class="hljs-number">0</span>) {
+        compare = left.lastName &lt; right.lastName
+                ? <span class="hljs-number">-1</span> : left.lastName &gt; right.lastName
+                     ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>
+    }
+    <span class="hljs-keyword">return</span> compare
+}
+</code></pre>
+<p>Not last name first specifically, but that sort of compare these properties and
+if they&apos;re equal, then compare those properties.</p>
+<p>What I really don&apos;t like about these comparators is having to unit test these
+functions because they&apos;re usually not directly accessible to the code, so I have
+to expose them for unit testing or else set up and tear down more complicated
+tests to tickle each branch with different values.</p>
+<p>With Ascension the comparator is declarative.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> comparator = ascension([ <span class="hljs-built_in">String</span>, <span class="hljs-built_in">String</span> ], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">object</span>) </span>{
+    <span class="hljs-keyword">return</span> [ object.lastName, object.firstName ]
+})
+</code></pre>
+<p>Now the comparator only needs to be invoked once in a unit test to get complete
+coverage.</p>
+<p>The first argument is an array with comparator methods for each member of the
+composite key. The second argument is a method that returns an array that
+contains the members of the composite key.</p>
+<p>Heres an example with a single field key.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> comparator = ascension([ <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">left, right</span>) </span>{ <span class="hljs-keyword">return</span> left - right } ], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">object</span>) </span>{
+    <span class="hljs-keyword">return</span> [ object.createdAt ]
+})
+</code></pre>
+<p>The above can be simplified by using <code>Numeric</code> to tell Ascention to use a
+default numeric comparator.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> comparator = ascension([ Numeric ], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">object</span>) </span>{
+    <span class="hljs-keyword">return</span> [ object.createdAt ]
+})
+</code></pre>
+<p>You can use both <code>Numeric</code> and <code>String</code> as sigils.</p>
+</div>
+  </div>
+  <!-- todo: move into an edify plugin-->
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    ga('create', 'UA-20388260-3', 'bigeasy.github.io');
+    ga('send', 'pageview');
+  </script>
+</body>
+<!-- vim: set ts=2 sw=2 nowrap:-->
