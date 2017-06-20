@@ -19,6 +19,7 @@ function Turnstile (options) {
     if (vargs.length) {
         callbackify = Operation(vargs)
     }
+    this.destroyed = false
     this._counter = 0xffffffff
     this._callbackify = callbackify
     this._vargs = vargs
@@ -59,19 +60,22 @@ Turnstile.prototype.enter = function (envelope) {
     task.next.previous = task
     task.previous.next = task
     this.health.waiting++
-    if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
-        this._stack('occupied', '_stopWorker')
-    } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when >= this.timeout) {
-        this._stack('rejecting', '_stopRejector')
+    if (!this.destroyed) {
+        if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
+            this._stack('occupied', '_stopWorker')
+        } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when >= this.timeout) {
+            this._stack('rejecting', '_stopRejector')
+        }
     }
 }
 
 Turnstile.prototype._stopWorker = function () {
-    return this.health.waiting == 0
+    return this.destroyed || this.health.waiting == 0
 }
 
 Turnstile.prototype._stopRejector = function () {
-    return this.health.waiting == 0
+    return this.destroyed
+        || this.health.waiting == 0
         || this._Date.now() - this._head.next.when <= this.timeout
 }
 
@@ -79,42 +83,47 @@ Turnstile.prototype._stopRejector = function () {
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     var severed = ! this.setImmediate
     async([function () {
-        this.health[counter]--
-    }], function () {
-        this.health[counter]++
-    }, function () {
-        var loop = async(function () {
-            if (this[stopper]()) {
-                return [ loop.break ]
-            }
-            var task = this._head.next
-            this._head.next = task.next
-            this._head.next.previous = this._head
-            this.health.waiting--
-            task.started.call(null)
-            async(function () {
-                if (!severed) {
-                    severed = true
-                    setImmediate(async()) // <- price, we only pay it to start work.
+        async([function () {
+            this.health[counter]--
+        }], function () {
+            this.health[counter]++
+        }, function () {
+            var loop = async(function () {
+                if (this[stopper]()) {
+                    return [ loop.break ]
                 }
-            }, [function () {
-                var waited = this._Date.now() - task.when
-                task.method.call(task.object, {
-                    module: 'turnstile',
-                    method: 'enter',
-                    when: task.when,
-                    waited: waited,
-                    timedout: waited >= this.timeout,
-                    body: task.body
-                }, async())
-            }, function (error) {
-                task.completed.call(null, error)
-                return [ loop.continue ]
-            }], [], function (vargs) {
-                task.completed.apply(null, [ null ].concat(vargs))
-            })
-        })()
-    })
+                var task = this._head.next
+                this._head.next = task.next
+                this._head.next.previous = this._head
+                this.health.waiting--
+                task.started.call(null)
+                async(function () {
+                    if (!severed) {
+                        severed = true
+                        setImmediate(async()) // <- price, we only pay it to start work.
+                    }
+                }, [function () {
+                    var waited = this._Date.now() - task.when
+                    task.method.call(task.object, {
+                        module: 'turnstile',
+                        method: 'enter',
+                        when: task.when,
+                        waited: waited,
+                        timedout: waited >= this.timeout,
+                        body: task.body
+                    }, async())
+                }, function (error) {
+                    task.completed.call(null, error)
+                    return [ loop.continue ]
+                }], [], function (vargs) {
+                    task.completed.apply(null, [ null ].concat(vargs))
+                })
+            })()
+        })
+    }, function (error) {
+        this.destroyed = true
+        throw error
+    }])
 })
 
 Turnstile.prototype._stack = function (name, stopper) {
