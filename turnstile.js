@@ -6,13 +6,22 @@ var abend = require('abend')
 var coalesce = require('extant')
 
 // Create bound user callback.
+var Operation = require('operation/variadic')
 
 // Create a turnstile that will invoke the given operation with each entry
 // pushed into the work queue.
 
 //
 function Turnstile (options) {
-    options || (options = {})
+    var vargs = Array.prototype.slice.call(arguments)
+    var options = coalesce(vargs.shift(), {})
+    var callbackify = function () { return abend }
+    if (vargs.length) {
+        callbackify = Operation(vargs)
+    }
+    this._counter = 0xffffffff
+    this._callbackify = callbackify
+    this._vargs = vargs
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {
@@ -50,7 +59,11 @@ Turnstile.prototype.enter = function (envelope) {
     task.next.previous = task
     task.previous.next = task
     this.health.waiting++
-    this._nudge(abend)
+    if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
+        this._stack('occupied', '_stopWorker')
+    } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when >= this.timeout) {
+        this._stack('rejecting', '_stopRejector')
+    }
 }
 
 Turnstile.prototype._stopWorker = function () {
@@ -104,14 +117,14 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     })
 })
 
-Turnstile.prototype._nudge = function (callback) {
-    if (this.health.waiting && this.health.occupied < this.health.turnstiles) {
-        this._work('occupied', '_stopWorker', callback)
-    } else if (this.health.waiting && !this.health.rejecting && this._Date.now() - this._head.next.when >= this.timeout) {
-        this._work('rejecting', '_stopRejector', callback)
+Turnstile.prototype._stack = function (name, stopper) {
+    if (this._counter == 0xffffffff) {
+        this._counter = 0
     } else {
-        callback()
+        this._counter++
     }
+    var callback = this._callbackify.apply(null, this._vargs.concat([ this._counter ]))
+    this._work(name, stopper, callback)
 }
 
 module.exports = Turnstile

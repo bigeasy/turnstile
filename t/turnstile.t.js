@@ -1,6 +1,7 @@
 require('proof')(9, require('cadence')(prove))
 
 function prove (async, assert) {
+    var abend = require('abend')
     var Turnstile = require('..')
     var Operation = require('operation/variadic')
     var expectations = [{
@@ -96,7 +97,7 @@ function prove (async, assert) {
     var turnstile = new Turnstile({
         Date: { now: function () { return now } },
         timeout: 1
-    })
+    }, function () { return abend })
     async(function () {
         turnstile.enter({
             object: object,
