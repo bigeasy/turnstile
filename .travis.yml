@@ -13,6 +13,6 @@ branches:
     - master
     - travis-ci
 
-before_install:
+install:
   - npm install
   - npm install istanbul coveralls
