@@ -1,4 +1,4 @@
-require('proof')(7, require('cadence')(prove))
+require('proof')(9, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -54,6 +54,17 @@ function prove (async, assert) {
             body: 6
         },
         message: 'resume after timeout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 7
+        },
+        message: 'resume after timeout',
+        vargs: [ new Error('thrown') ]
     }]
     var object = {
         method: function (envelope, callback) {
@@ -127,5 +138,17 @@ function prove (async, assert) {
             body: 6
         })
         object.method.apply(object, wait)
+    }, function () {
+        // TODO When you error and you've passed a completed method, what does
+        // the completed method return? It can't return an error because we
+        // don't want to push errors back through the queue.
+        turnstile.listen(function (error) {
+            assert(error.message, 'thrown', 'caught')
+        })
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            body: 7
+        })
     })
 }
