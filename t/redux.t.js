@@ -1,4 +1,4 @@
-require('proof')(9, require('cadence')(prove))
+require('proof')(10, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -11,7 +11,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 1
+            body: 1,
+            error: null
         },
         message: 'push'
     }, {
@@ -21,7 +22,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 2
+            body: 2,
+            error: null
         },
         message: 'enqueue'
     }, {
@@ -31,7 +33,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 4
+            body: 4,
+            error: null
         },
         message: 'did not timeout'
     }, {
@@ -41,7 +44,8 @@ function prove (async, assert) {
             when: 0,
             waited: 1,
             timedout: true,
-            body: 5
+            body: 5,
+            error: null
         },
         message: 'timedout'
     }, {
@@ -51,7 +55,8 @@ function prove (async, assert) {
             when: 1,
             waited: 0,
             timedout: false,
-            body: 6
+            body: 6,
+            error: null
         },
         message: 'resume after timeout'
     }, {
@@ -61,9 +66,10 @@ function prove (async, assert) {
             when: 1,
             waited: 0,
             timedout: false,
-            body: 7
+            body: 7,
+            error: null
         },
-        message: 'resume after timeout',
+        message: 'thrown',
         vargs: [ new Error('thrown') ]
     }]
     var object = {
@@ -138,17 +144,20 @@ function prove (async, assert) {
             body: 6
         })
         object.method.apply(object, wait)
-    }, function () {
+    }, [function () {
         // TODO When you error and you've passed a completed method, what does
         // the completed method return? It can't return an error because we
         // don't want to push errors back through the queue.
-        turnstile.listen(function (error) {
-            assert(error.message, 'thrown', 'caught')
-        })
+        turnstile.listen(async())
         turnstile.enter({
             object: object,
             method: object.method,
             body: 7
         })
-    })
+    }, function (error) {
+        assert(/^turnstile#exception$/m.test(error.message), 'caught')
+        turnstile.drain(function (task) {
+            assert(task.error.message, 'thrown', 'drained')
+        })
+    }])
 }
