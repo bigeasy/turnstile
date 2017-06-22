@@ -17,11 +17,11 @@ var interrupt = require('interrupt').createInterrupter('turnstile')
 // pushed into the work queue.
 
 function _stopWorker (turnstile) {
-    return turnstile.destroyed || turnstile.health.waiting == 0
+    return turnstile.paused || turnstile.health.waiting == 0
 }
 
 function _stopRejector (turnstile) {
-    return turnstile.destroyed
+    return turnstile.paused
         || turnstile.health.waiting == 0
         || turnstile._Date.now() - turnstile._head.next.when <= turnstile.timeout
 }
@@ -36,7 +36,7 @@ function createCallback (turnstile, type) {
 //
 function Turnstile (options) {
     options || (options = {})
-    this.destroyed = false
+    this.paused = false
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {
@@ -51,6 +51,7 @@ function Turnstile (options) {
     this.health.occupied = 0
     this.health.waiting = 0
     this.health.rejecting = 0
+    this.paused = 0
     this.timeout = coalesce(options.timeout, Infinity)
     this._Date = coalesce(options.Date, Date)
     this.setImmediate = coalesce(options.setImmediate, true)
@@ -78,7 +79,7 @@ Turnstile.prototype.enter = function (envelope) {
     task.next.previous = task
     task.previous.next = task
     this.health.waiting++
-    if (this.destroyed) {
+    if (this.paused) {
     } else if (this.health.occupied < this.health.turnstiles) {
         this._stack('occupied', _stopWorker)
     } else if (this.health.rejecting == 0 && this._Date.now() - this._head.next.when >= this.timeout) {
@@ -151,10 +152,13 @@ Turnstile.prototype._stack = function (type, stopper) {
 
 Turnstile.prototype._calledback = function (error) {
     if (error) {
-        this.destroyed = true
+        this.paused = true
         this.errors.push(error)
     }
-    if (this.destroyed && this.health.occupied == 0 && this.health.rejecting == 0) {
+    if (
+        (this.paused || (this.draining && this.health.waiting == 0)) &&
+        this.health.occupied == 0 && this.health.rejecting == 0
+    ) {
         if (this.errors.length) {
             this._listener.call(null, this.errors[0])
         } else {
