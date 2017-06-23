@@ -1,4 +1,4 @@
-require('proof')(17, require('cadence')(prove))
+require('proof')(19, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -100,10 +100,21 @@ function prove (async, assert) {
             when: 1,
             waited: 0,
             timedout: false,
-            body: 9,
+            body: 10,
             error: null
         },
         message: 'before pause'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 11,
+            error: null
+        },
+        message: 'closed'
     }]
     var object = {
         method: function (envelope, callback) {
@@ -218,11 +229,24 @@ function prove (async, assert) {
                 wait = [ envelope, callback ]
             },
             completed: async(),
-            body: 9
+            body: 10
         })
         turnstile.pause()
         object.method.apply(object, wait)
     }, function () {
         assert(true, 'pause no waiting')
+        turnstile.resume()
+        turnstile.listen(async())
+        var wait
+        turnstile.enter({
+            method: function (envelope, callback) {
+                wait = [ envelope, callback ]
+            },
+            body: 11
+        })
+        turnstile.close()
+        object.method.apply(object, wait)
+    }, function () {
+        assert(turnstile.closed, 'closed')
     })
 }
