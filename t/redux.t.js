@@ -1,4 +1,4 @@
-require('proof')(13, require('cadence')(prove))
+require('proof')(16, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -93,6 +93,17 @@ function prove (async, assert) {
             error: null
         },
         message: 'resume after timeout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 9,
+            error: null
+        },
+        message: 'before pause'
     }]
     var object = {
         method: function (envelope, callback) {
@@ -143,7 +154,7 @@ function prove (async, assert) {
             completed: async()
         })
     }, function () {
-        var wait = null
+        var wait
         turnstile.enter({               // starts loop
             object: object,
             method: function (envelope, callback) {
@@ -183,18 +194,36 @@ function prove (async, assert) {
         })
         assert(turnstile.paused, 'paused')
     }], function () {
-        turnstile.enter({               // sees that waiting has expired, starts rejector
+        turnstile.enter({
             object: object,
             method: object.method,
             completed: async(),
             body: 8
         })
-        turnstile.enter({               // sees that waiting has expired, starts rejector
+        turnstile.enter({
             object: object,
             method: object.method,
             completed: async(),
             body: 9
         })
         turnstile.resume()
+    }, function () {
+        turnstile.listen(async())
+        turnstile.pause()
+    }, function () {
+        assert(true, 'pause no waiting')
+        var wait
+        turnstile.resume()
+        turnstile.enter({
+            method: function (envelope, callback) {
+                wait = [ envelope, callback ]
+            },
+            completed: async(),
+            body: 9
+        })
+        turnstile.pause()
+        object.method.apply(object, wait)
+    }, function () {
+        assert(true, 'pause no waiting')
     })
 }

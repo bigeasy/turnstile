@@ -178,13 +178,15 @@ Turnstile.prototype.listen = function (callback) {
 
 Turnstile.prototype.pause = function () {
     this.paused = true
-    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting) {
-        this._listener.call(null)
+    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting == 0) {
+        [ this._listener, this._listener = abend ][0]()
     }
 }
 
 Turnstile.prototype.resume = function () {
+    interrupt.assert(this.paused && this.health.occupied == 0 && this.health.rejecting == 0, 'unpaused')
     this.paused = false
+    this.errors.splice(0, this.errors.length)
     while (this.health.waiting && this.health.occupied < this.health.turnstiles) {
         this._stack('occupied', _stopWorker)
     }
