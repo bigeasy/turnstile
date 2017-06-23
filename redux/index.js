@@ -37,6 +37,7 @@ function createCallback (turnstile, type) {
 function Turnstile (options) {
     options || (options = {})
     this.paused = false
+    this.closed = false
     this._head = {}
     this._head.next = this._head.previous = this._head
     this.health = {
@@ -85,6 +86,9 @@ Turnstile.prototype.enter = function (envelope) {
     } else if (this.health.rejecting == 0 && this._Date.now() - this._head.next.when >= this.timeout) {
         this._stack('rejecting', _stopRejector)
     }
+}
+
+Turnstile.prototype._nudge = function () {
 }
 
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
@@ -156,19 +160,38 @@ Turnstile.prototype._calledback = function (error) {
         this.errors.push(error)
     }
     if (
-        (this.paused || (this.draining && this.health.waiting == 0)) &&
+        (this.paused || (this.closed && this.health.waiting == 0)) &&
         this.health.occupied == 0 && this.health.rejecting == 0
     ) {
+        var listener = [ this._listener, this._listener = abend ][0]
         if (this.errors.length) {
-            this._listener.call(null, this.errors[0])
+            listener(this.errors[0])
         } else {
-            this._listener.call(null)
+            listener()
         }
     }
 }
 
 Turnstile.prototype.listen = function (callback) {
     this._listener = callback
+}
+
+Turnstile.prototype.pause = function () {
+    this.paused = true
+    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting) {
+        this._listener.call(null)
+    }
+}
+
+Turnstile.prototype.resume = function () {
+    this.paused = false
+    while (this.health.waiting && this.health.occupied < this.health.turnstiles) {
+        this._stack('occupied', _stopWorker)
+    }
+}
+
+Turnstile.prototype.close = function () {
+    this.closed = true
 }
 
 Turnstile.prototype.drain = function (consumer) {
