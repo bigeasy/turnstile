@@ -1,4 +1,4 @@
-require('proof')(16, require('cadence')(prove))
+require('proof')(17, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -190,6 +190,7 @@ function prove (async, assert) {
     }, function (error) {
         assert(/^turnstile#exception$/m.test(error.message), 'caught')
         assert(turnstile.shift().error.message, 'thrown', 'shifted')
+        assert(turnstile.shift(), null, 'empty')
         assert(turnstile.paused, 'paused')
     }], function () {
         turnstile.enter({
