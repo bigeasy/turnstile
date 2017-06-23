@@ -88,9 +88,6 @@ Turnstile.prototype.enter = function (envelope) {
     }
 }
 
-Turnstile.prototype._nudge = function () {
-}
-
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     // We increment and decrement a counter based on whether we're working
     // through tasks or rejecting them because they've expired.
