@@ -189,9 +189,7 @@ function prove (async, assert) {
         })
     }, function (error) {
         assert(/^turnstile#exception$/m.test(error.message), 'caught')
-        turnstile.drain(function (task) {
-            assert(task.error.message, 'thrown', 'drained')
-        })
+        assert(turnstile.shift().error.message, 'thrown', 'shifted')
         assert(turnstile.paused, 'paused')
     }], function () {
         turnstile.enter({

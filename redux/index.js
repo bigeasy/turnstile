@@ -142,6 +142,8 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             task.previous = this._head
             task.next.previous = task
             task.previous.next = task
+            // Increment the waiting count.
+            this.health.waiting++
             // Throw a wrapped exception that has all the envelope properties.
             throw new interrupt('exception', error, {}, {
                 properties: envelope
@@ -196,24 +198,22 @@ Turnstile.prototype.close = function () {
     this.closed = true
 }
 
-Turnstile.prototype.drain = function (consumer) {
-    var f = consumer
-    if (typeof consumer != 'function') {
-        f = function (task) { consumer.enter(task) }
+Turnstile.prototype.shift = function () {
+    if (this._head.next === this._head) {
+        return null
     }
-    while (this._head.next !== this._head) {
-        var task = this._head.next
-        this._head.next = task.next
-        this._head.next.previous = this._head
-        f({
-            error: task.error,
-            object: task.object,
-            method: task.method,
-            when: task.when,
-            body: task.body,
-            started: task.started,
-            completed: task.completed
-        })
+    var task = this._head.next
+    this._head.next = task.next
+    this._head.next.previous = this._head
+    this.health.waiting--
+    return {
+        error: task.error,
+        object: task.object,
+        method: task.method,
+        when: task.when,
+        body: task.body,
+        started: task.started,
+        completed: task.completed
     }
 }
 
