@@ -1,15 +1,15 @@
 // Control-flow utilities.
 var cadence = require('cadence')
+var abend = require('abend')
 
-// Common utilities.
+// Return the first not null-like value.
 var coalesce = require('extant')
 
 // Create bound user callback.
 var Operation = require('operation/variadic')
 
+// Do nothing.
 var nop = require('nop')
-
-var abend = require('abend')
 
 var interrupt = require('interrupt').createInterrupter('turnstile')
 
@@ -63,6 +63,7 @@ Turnstile.prototype.reconfigure = function (options) {
     options.timeout == null || (this.timeout = options.timeout)
 }
 
+// TODO Remove "checkpoint."
 Turnstile.prototype.enter = function (envelope) {
     var task = {
         error: coalesce(envelope.error),
@@ -126,8 +127,9 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                         body: task.body,
                         error: task.error
                     }, async())
-                }, function () {
-                    task.completed.call(null)
+                }, [], function (vargs) {
+                    vargs.unshift(null)
+                    task.completed.apply(null, vargs)
                 })
             })()
         }, function (error) {
