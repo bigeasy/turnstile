@@ -63,14 +63,11 @@ Turnstile.prototype.reconfigure = function (options) {
     options.timeout == null || (this.timeout = options.timeout)
 }
 
-// TODO Remove "checkpoint."
 Turnstile.prototype.enter = function (envelope) {
     var task = {
         error: coalesce(envelope.error),
         object: coalesce(envelope.object),
-        method: envelope.checkpoint
-            ? function (envelope, callback) { callback() }
-            : envelope.method,
+        method: envelope.method,
         when: coalesce(envelope.when, this._Date.now()),
         body: coalesce(envelope.body),
         started: coalesce(envelope.started, nop),

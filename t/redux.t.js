@@ -160,10 +160,6 @@ function prove (async, assert) {
             completed: async(),
             body: 2
         })
-        turnstile.enter({
-            checkpoint: true,
-            completed: async()
-        })
     }, function () {
         var wait
         turnstile.enter({               // starts loop
