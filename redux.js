@@ -192,6 +192,9 @@ Turnstile.prototype.resume = function () {
 
 Turnstile.prototype.close = function () {
     this.closed = true
+    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting == 0) {
+        [ this._listener, this._listener = abend ][0]()
+    }
 }
 
 Turnstile.prototype.shift = function () {

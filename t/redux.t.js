@@ -1,4 +1,4 @@
-require('proof')(19, require('cadence')(prove))
+require('proof')(20, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -243,6 +243,11 @@ function prove (async, assert) {
         turnstile.close()
         object.method.apply(object, wait)
     }, function () {
-        assert(turnstile.closed, 'closed')
+        assert(turnstile.closed, 'drained and closed')
+        turnstile = new Turnstile
+        turnstile.listen(async())
+        turnstile.close()
+    }, function () {
+        assert(turnstile.closed, 'closed immediately')
     })
 }
