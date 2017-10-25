@@ -6,7 +6,7 @@ var abend = require('abend')
 var coalesce = require('extant')
 
 // Do nothing.
-var nop = require('nop')
+var noop = require('nop')
 
 var interrupt = require('interrupt').createInterrupter('turnstile')
 
@@ -67,8 +67,8 @@ Turnstile.prototype.enter = function (envelope) {
         method: envelope.method,
         when: coalesce(envelope.when, this._Date.now()),
         body: coalesce(envelope.body),
-        started: coalesce(envelope.started, nop),
-        completed: coalesce(envelope.completed, nop),
+        started: coalesce(envelope.started, noop),
+        completed: coalesce(envelope.completed, noop),
         previous: this._head.previous,
         next: this._head
     }
@@ -108,7 +108,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                 task.started.call(null)
                 // If case we crash restart the task we don't want to call
                 // started a second time.
-                task.started = nop
+                task.started = noop
                 // Run the task and mark it as completed if it succeeds.
                 async(function () {
                     var waited = this._Date.now() - task.when
