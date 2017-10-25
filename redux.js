@@ -5,9 +5,6 @@ var abend = require('abend')
 // Return the first not null-like value.
 var coalesce = require('extant')
 
-// Create bound user callback.
-var Operation = require('operation/variadic')
-
 // Do nothing.
 var nop = require('nop')
 
