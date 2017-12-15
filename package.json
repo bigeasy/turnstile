@@ -7,7 +7,7 @@
 
     "keywords":
     [
-                            "queue", "events"
+                            "cadence", "queue", "events"
     ],
     "author":               "Alan Gutierrez <alan@prettyrobots.com>",
     "homepage":             "https://github.com/bigeasy/turnstile",
