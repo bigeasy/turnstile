@@ -16,7 +16,7 @@
     "repository":
     {
                             "type": "git",
-                            "url": "http://github.com/bigeasy/turnstile.git"
+                            "url": "bigeasy/turnstile"
     },
     "dependencies":
     {
