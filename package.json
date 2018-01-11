@@ -1,6 +1,6 @@
 {
     "name":                 "turnstile",
-    "version":              "3.2.5",
+    "version":              "3.2.6",
     "description":
 
       "An evented event queue.",
