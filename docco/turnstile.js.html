@@ -65,9 +65,7 @@
             </div>
 
             <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> cadence = <span class="hljs-built_in">require</span>(<span class="hljs-string">'cadence'</span>)
-<span class="hljs-keyword">var</span> abend = <span class="hljs-built_in">require</span>(<span class="hljs-string">'abend'</span>)
-
-</pre></div></div>
+<span class="hljs-keyword">var</span> abend = <span class="hljs-built_in">require</span>(<span class="hljs-string">'abend'</span>)</pre></div></div>
 
         </li>
 
@@ -78,13 +76,11 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-2">&#182;</a>
               </div>
-              <p>Common utilities.</p>
+              <p>Return the first not null-like value.</p>
 
             </div>
 
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">'extant'</span>)
-
-</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">'extant'</span>)</pre></div></div>
 
         </li>
 
@@ -95,9 +91,13 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-3">&#182;</a>
               </div>
-              <p>Create bound user callback.</p>
+              <p>Do nothing.</p>
 
             </div>
+
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> noop = <span class="hljs-built_in">require</span>(<span class="hljs-string">'nop'</span>)
+
+<span class="hljs-keyword">var</span> interrupt = <span class="hljs-built_in">require</span>(<span class="hljs-string">'interrupt'</span>).createInterrupter(<span class="hljs-string">'turnstile'</span>)</pre></div></div>
 
         </li>
 
@@ -113,6 +113,24 @@ pushed into the work queue.</p>
 
             </div>
 
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_stopWorker</span> (<span class="hljs-params">turnstile</span>) </span>{
+    <span class="hljs-keyword">return</span> turnstile.paused || turnstile.health.waiting == <span class="hljs-number">0</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_stopRejector</span> (<span class="hljs-params">turnstile</span>) </span>{
+    <span class="hljs-keyword">return</span> turnstile.paused
+        || turnstile.health.waiting == <span class="hljs-number">0</span>
+        || turnstile._Date.now() - turnstile._head.next.when &lt;= turnstile.timeout
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createCallback</span> (<span class="hljs-params">turnstile, type</span>) </span>{
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">callback</span> (<span class="hljs-params">error</span>) </span>{
+        turnstile._calledback(error, type)
+    }
+    <span class="hljs-keyword">return</span> callback
+}</pre></div></div>
+
         </li>
 
 
@@ -127,6 +145,8 @@ pushed into the work queue.</p>
 
             <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Turnstile</span> (<span class="hljs-params">options</span>) </span>{
     options || (options = {})
+    <span class="hljs-keyword">this</span>.paused = <span class="hljs-literal">false</span>
+    <span class="hljs-keyword">this</span>.closed = <span class="hljs-literal">false</span>
     <span class="hljs-keyword">this</span>._head = {}
     <span class="hljs-keyword">this</span>._head.next = <span class="hljs-keyword">this</span>._head.previous = <span class="hljs-keyword">this</span>._head
     <span class="hljs-keyword">this</span>.health = {
@@ -135,9 +155,13 @@ pushed into the work queue.</p>
         <span class="hljs-attr">rejecting</span>: <span class="hljs-number">0</span>,
         <span class="hljs-attr">turnstiles</span>: coalesce(options.turnstiles, <span class="hljs-number">1</span>)
     }
+    <span class="hljs-keyword">this</span>._callbacks = { <span class="hljs-attr">occupied</span>: [], <span class="hljs-attr">rejecting</span>: [] }
+    <span class="hljs-keyword">this</span>._listener = abend
+    <span class="hljs-keyword">this</span>.errors = []
     <span class="hljs-keyword">this</span>.health.occupied = <span class="hljs-number">0</span>
     <span class="hljs-keyword">this</span>.health.waiting = <span class="hljs-number">0</span>
     <span class="hljs-keyword">this</span>.health.rejecting = <span class="hljs-number">0</span>
+    <span class="hljs-keyword">this</span>.paused = <span class="hljs-number">0</span>
     <span class="hljs-keyword">this</span>.timeout = coalesce(options.timeout, <span class="hljs-literal">Infinity</span>)
     <span class="hljs-keyword">this</span>._Date = coalesce(options.Date, <span class="hljs-built_in">Date</span>)
     <span class="hljs-keyword">this</span>.setImmediate = coalesce(options.setImmediate, <span class="hljs-literal">true</span>)
@@ -150,33 +174,29 @@ Turnstile.prototype.reconfigure = <span class="hljs-function"><span class="hljs-
 
 Turnstile.prototype.enter = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">envelope</span>) </span>{
     <span class="hljs-keyword">var</span> task = {
+        <span class="hljs-attr">error</span>: coalesce(envelope.error),
         <span class="hljs-attr">object</span>: coalesce(envelope.object),
-        <span class="hljs-attr">method</span>: envelope.checkpoint
-            ? <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">envelope, callback</span>) </span>{ callback() }
-            : envelope.method,
-        <span class="hljs-attr">when</span>: <span class="hljs-keyword">this</span>._Date.now(),
+        <span class="hljs-attr">method</span>: envelope.method,
+        <span class="hljs-attr">when</span>: coalesce(envelope.when, <span class="hljs-keyword">this</span>._Date.now()),
         <span class="hljs-attr">body</span>: coalesce(envelope.body),
-        <span class="hljs-attr">started</span>: coalesce(envelope.started, abend),
-        <span class="hljs-attr">completed</span>: coalesce(envelope.completed, abend),
+        <span class="hljs-attr">started</span>: coalesce(envelope.started, noop),
+        <span class="hljs-attr">completed</span>: coalesce(envelope.completed, noop),
         <span class="hljs-attr">previous</span>: <span class="hljs-keyword">this</span>._head.previous,
         <span class="hljs-attr">next</span>: <span class="hljs-keyword">this</span>._head
     }
     task.next.previous = task
     task.previous.next = task
     <span class="hljs-keyword">this</span>.health.waiting++
-    <span class="hljs-keyword">this</span>._nudge(abend)
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.paused) {
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.occupied &lt; <span class="hljs-keyword">this</span>.health.turnstiles) {
+        <span class="hljs-keyword">this</span>._stack(<span class="hljs-string">'occupied'</span>, _stopWorker)
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.rejecting == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>._Date.now() - <span class="hljs-keyword">this</span>._head.next.when &gt;= <span class="hljs-keyword">this</span>.timeout) {
+        <span class="hljs-keyword">this</span>._stack(<span class="hljs-string">'rejecting'</span>, _stopRejector)
+    }
 }
 
-Turnstile.prototype._stopWorker = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.health.waiting == <span class="hljs-number">0</span>
-}
-
-Turnstile.prototype._stopRejector = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.health.waiting == <span class="hljs-number">0</span>
-        || <span class="hljs-keyword">this</span>._Date.now() - <span class="hljs-keyword">this</span>._head.next.when &lt;= <span class="hljs-keyword">this</span>.timeout
-}
-
-</pre></div></div>
+Turnstile.prototype._work = cadence(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">async, counter, stopper</span>) </span>{
+    <span class="hljs-keyword">var</span> servered = <span class="hljs-literal">false</span></pre></div></div>
 
         </li>
 
@@ -187,64 +207,269 @@ Turnstile.prototype._stopRejector = <span class="hljs-function"><span class="hlj
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-6">&#182;</a>
               </div>
-              <p>We use Cadence because of its superior try/catch abilities.</p>
+              <p>We increment and decrement a counter based on whether we’re working
+through tasks or rejecting them because they’ve expired.</p>
 
             </div>
 
-            <div class="content"><div class='highlight'><pre>Turnstile.prototype._work = cadence(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">async, counter, stopper</span>) </span>{
-    <span class="hljs-keyword">var</span> severed = ! <span class="hljs-keyword">this</span>.setImmediate
-    <span class="hljs-keyword">async</span>([<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">async</span>([<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
         <span class="hljs-keyword">this</span>.health[counter]--
     }], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
         <span class="hljs-keyword">this</span>.health[counter]++
     }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-        <span class="hljs-keyword">var</span> loop = <span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>[stopper]()) {
-                <span class="hljs-keyword">return</span> [ loop.break ]
-            }
-            <span class="hljs-keyword">var</span> task = <span class="hljs-keyword">this</span>._head.next
-            <span class="hljs-keyword">this</span>._head.next = task.next
-            <span class="hljs-keyword">this</span>._head.next.previous = <span class="hljs-keyword">this</span>._head
-            <span class="hljs-keyword">this</span>.health.waiting--
-            task.started.call(<span class="hljs-literal">null</span>)
-            <span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-                <span class="hljs-keyword">if</span> (!severed) {
-                    severed = <span class="hljs-literal">true</span>
-                    setImmediate(<span class="hljs-keyword">async</span>()) <span class="hljs-comment">// &lt;- price, we only pay it to start work.</span>
-                }
-            }, [<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-                <span class="hljs-keyword">var</span> waited = <span class="hljs-keyword">this</span>._Date.now() - task.when
-                task.method.call(task.object, {
-                    <span class="hljs-attr">module</span>: <span class="hljs-string">'turnstile'</span>,
-                    <span class="hljs-attr">method</span>: <span class="hljs-string">'enter'</span>,
-                    <span class="hljs-attr">when</span>: task.when,
-                    <span class="hljs-attr">waited</span>: waited,
-                    <span class="hljs-attr">timedout</span>: waited &gt;= <span class="hljs-keyword">this</span>.timeout,
-                    <span class="hljs-attr">body</span>: task.body
-                }, <span class="hljs-keyword">async</span>())
-            }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">error</span>) </span>{
-                task.completed.call(<span class="hljs-literal">null</span>, error)
-                <span class="hljs-keyword">return</span> [ loop.continue ]
-            }], [], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">vargs</span>) </span>{
-                task.completed.apply(<span class="hljs-literal">null</span>, [ <span class="hljs-literal">null</span> ].concat(vargs))
+        <span class="hljs-keyword">var</span> task, envelope
+        <span class="hljs-keyword">async</span>([<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{</pre></div></div>
+
+        </li>
+
+
+        <li id="section-7">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Work through the work in the queue.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">var</span> loop = <span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{</pre></div></div>
+
+        </li>
+
+
+        <li id="section-8">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Loop exit.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>                <span class="hljs-keyword">if</span> (stopper(<span class="hljs-keyword">this</span>)) {
+                    <span class="hljs-keyword">return</span> [ loop.break ]
+                }</pre></div></div>
+
+        </li>
+
+
+        <li id="section-9">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>Shift a task off of the work queue.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>                task = <span class="hljs-keyword">this</span>._head.next
+                <span class="hljs-keyword">this</span>._head.next = task.next
+                <span class="hljs-keyword">this</span>._head.next.previous = <span class="hljs-keyword">this</span>._head
+                <span class="hljs-keyword">this</span>.health.waiting--</pre></div></div>
+
+        </li>
+
+
+        <li id="section-10">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Notify caller that we’ve begun.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>                task.started.call(<span class="hljs-literal">null</span>)</pre></div></div>
+
+        </li>
+
+
+        <li id="section-11">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>If case we crash restart the task we don’t want to call
+started a second time.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>                task.started = noop</pre></div></div>
+
+        </li>
+
+
+        <li id="section-12">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>Run the task and mark it as completed if it succeeds.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>                <span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+                    <span class="hljs-keyword">var</span> waited = <span class="hljs-keyword">this</span>._Date.now() - task.when
+                    task.method.call(task.object, envelope = {
+                        <span class="hljs-attr">module</span>: <span class="hljs-string">'turnstile'</span>,
+                        <span class="hljs-attr">method</span>: <span class="hljs-string">'enter'</span>,
+                        <span class="hljs-attr">when</span>: task.when,
+                        <span class="hljs-attr">waited</span>: waited,
+                        <span class="hljs-attr">timedout</span>: waited &gt;= <span class="hljs-keyword">this</span>.timeout,
+                        <span class="hljs-attr">body</span>: task.body,
+                        <span class="hljs-attr">error</span>: task.error
+                    }, <span class="hljs-keyword">async</span>())
+                }, [], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">vargs</span>) </span>{
+                    vargs.unshift(<span class="hljs-literal">null</span>)
+                    task.completed.apply(<span class="hljs-literal">null</span>, vargs)
+                })
+            })()
+        }, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">error</span>) </span>{</pre></div></div>
+
+        </li>
+
+
+        <li id="section-13">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>Put the error in the task so we can see that it failed if we try
+to run it again.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>            task.error = error</pre></div></div>
+
+        </li>
+
+
+        <li id="section-14">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Push the work back onto the front of the queue.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>            task.next = <span class="hljs-keyword">this</span>._head.next
+            task.previous = <span class="hljs-keyword">this</span>._head
+            task.next.previous = task
+            task.previous.next = task</pre></div></div>
+
+        </li>
+
+
+        <li id="section-15">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Increment the waiting count.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">this</span>.health.waiting++</pre></div></div>
+
+        </li>
+
+
+        <li id="section-16">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Throw a wrapped exception that has all the envelope properties.</p>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> interrupt(<span class="hljs-string">'exception'</span>, error, {}, {
+                <span class="hljs-attr">properties</span>: envelope
             })
-        })()
+        }])
     })
 })
 
-Turnstile.prototype._nudge = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">callback</span>) </span>{
-    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.waiting &amp;&amp; <span class="hljs-keyword">this</span>.health.occupied &lt; <span class="hljs-keyword">this</span>.health.turnstiles) {
-        <span class="hljs-keyword">this</span>._work(<span class="hljs-string">'occupied'</span>, <span class="hljs-string">'_stopWorker'</span>, callback)
-    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.waiting &amp;&amp; !<span class="hljs-keyword">this</span>.health.rejecting &amp;&amp; <span class="hljs-keyword">this</span>._Date.now() - <span class="hljs-keyword">this</span>._head.next.when &gt;= <span class="hljs-keyword">this</span>.timeout) {
-        <span class="hljs-keyword">this</span>._work(<span class="hljs-string">'rejecting'</span>, <span class="hljs-string">'_stopRejector'</span>, callback)
-    } <span class="hljs-keyword">else</span> {
-        callback()
+Turnstile.prototype._stack = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">type, stopper</span>) </span>{
+    <span class="hljs-keyword">this</span>._work(type, stopper, <span class="hljs-keyword">this</span>._callbacks[type].shift() || createCallback(<span class="hljs-keyword">this</span>, type))
+}
+
+Turnstile.prototype._calledback = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">error</span>) </span>{
+    <span class="hljs-keyword">if</span> (error) {
+        <span class="hljs-keyword">this</span>.paused = <span class="hljs-literal">true</span>
+        <span class="hljs-keyword">this</span>.errors.push(error)
+    }
+    <span class="hljs-keyword">if</span> (
+        (<span class="hljs-keyword">this</span>.paused || (<span class="hljs-keyword">this</span>.closed &amp;&amp; <span class="hljs-keyword">this</span>.health.waiting == <span class="hljs-number">0</span>)) &amp;&amp;
+        <span class="hljs-keyword">this</span>.health.occupied == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.rejecting == <span class="hljs-number">0</span>
+    ) {
+        <span class="hljs-keyword">var</span> listener = [ <span class="hljs-keyword">this</span>._listener, <span class="hljs-keyword">this</span>._listener = abend ][<span class="hljs-number">0</span>]
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.errors.length) {
+            listener(<span class="hljs-keyword">this</span>.errors[<span class="hljs-number">0</span>])
+        } <span class="hljs-keyword">else</span> {
+            listener()
+        }
     }
 }
 
-<span class="hljs-built_in">module</span>.exports = Turnstile
+Turnstile.prototype.listen = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">callback</span>) </span>{
+    <span class="hljs-keyword">this</span>._listener = callback
+}
 
-</pre></div></div>
+Turnstile.prototype.pause = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.paused = <span class="hljs-literal">true</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.waiting == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.occupied == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.rejecting == <span class="hljs-number">0</span>) {
+        [ <span class="hljs-keyword">this</span>._listener, <span class="hljs-keyword">this</span>._listener = abend ][<span class="hljs-number">0</span>]()
+    }
+}
+
+Turnstile.prototype.resume = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    interrupt.assert(<span class="hljs-keyword">this</span>.paused &amp;&amp; <span class="hljs-keyword">this</span>.health.occupied == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.rejecting == <span class="hljs-number">0</span>, <span class="hljs-string">'unpaused'</span>)
+    <span class="hljs-keyword">this</span>.paused = <span class="hljs-literal">false</span>
+    <span class="hljs-keyword">this</span>.errors.splice(<span class="hljs-number">0</span>, <span class="hljs-keyword">this</span>.errors.length)
+    <span class="hljs-keyword">while</span> (<span class="hljs-keyword">this</span>.health.waiting &amp;&amp; <span class="hljs-keyword">this</span>.health.occupied &lt; <span class="hljs-keyword">this</span>.health.turnstiles) {
+        <span class="hljs-keyword">this</span>._stack(<span class="hljs-string">'occupied'</span>, _stopWorker)
+    }
+}
+
+Turnstile.prototype.close = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">this</span>.closed = <span class="hljs-literal">true</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.health.waiting == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.occupied == <span class="hljs-number">0</span> &amp;&amp; <span class="hljs-keyword">this</span>.health.rejecting == <span class="hljs-number">0</span>) {
+        [ <span class="hljs-keyword">this</span>._listener, <span class="hljs-keyword">this</span>._listener = abend ][<span class="hljs-number">0</span>]()
+    }
+}
+
+Turnstile.prototype.shift = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._head.next === <span class="hljs-keyword">this</span>._head) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
+    }
+    <span class="hljs-keyword">var</span> task = <span class="hljs-keyword">this</span>._head.next
+    <span class="hljs-keyword">this</span>._head.next = task.next
+    <span class="hljs-keyword">this</span>._head.next.previous = <span class="hljs-keyword">this</span>._head
+    <span class="hljs-keyword">this</span>.health.waiting--
+    <span class="hljs-keyword">return</span> {
+        <span class="hljs-attr">error</span>: task.error,
+        <span class="hljs-attr">object</span>: task.object,
+        <span class="hljs-attr">method</span>: task.method,
+        <span class="hljs-attr">when</span>: task.when,
+        <span class="hljs-attr">body</span>: task.body,
+        <span class="hljs-attr">started</span>: task.started,
+        <span class="hljs-attr">completed</span>: task.completed
+    }
+}
+
+<span class="hljs-built_in">module</span>.exports = Turnstile</pre></div></div>
 
         </li>
 
