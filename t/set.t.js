@@ -1,20 +1,38 @@
-require('proof')(2, require('cadence')(prove))
+require('proof')(3, require('cadence')(prove))
 
 function prove (async, assert) {
-    var Turnstile = require('..')
+    var Turnstile = require('../redux')
     Turnstile.Set = require('../set')
+
+    var expect = [{
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 0,
+            timedout: false,
+            body: 'a',
+            error: null
+        },
+        message: 'key'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 0,
+            waited: 0,
+            timedout: false,
+            body: 'b',
+            error: null
+        },
+        message: 'doubled'
+    }]
 
     var object = {
         method: function (envelope, callback) {
-            assert(envelope, {
-                module: 'turnstile',
-                method: 'enter',
-                when: 0,
-                waited: 0,
-                timedout: false,
-                body: 'a'
-            }, 'key')
-            callback(null, 1)
+            var expected = expect.shift()
+            assert(envelope, expected.envelope, expected.message)
+            setImmediate(callback, null, 1)
         }
     }
 
@@ -23,7 +41,8 @@ function prove (async, assert) {
 
     async(function () {
         set.add('a')
-        set.add('a', async())
+        set.add('b')
+        set.add('b', async())
     }, function (result) {
         assert(result, 1, 'called')
     })
