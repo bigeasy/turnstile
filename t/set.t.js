@@ -1,7 +1,7 @@
 require('proof')(3, require('cadence')(prove))
 
 function prove (async, assert) {
-    var Turnstile = require('../redux')
+    var Turnstile = require('..')
     Turnstile.Set = require('../set')
 
     var expect = [{

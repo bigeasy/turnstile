@@ -1,4 +1,4 @@
-require('proof')(9, require('cadence')(prove))
+require('proof')(20, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -11,7 +11,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 1
+            body: 1,
+            error: null
         },
         message: 'push'
     }, {
@@ -21,7 +22,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 2
+            body: 2,
+            error: null
         },
         message: 'enqueue'
     }, {
@@ -31,18 +33,8 @@ function prove (async, assert) {
             when: 0,
             waited: 0,
             timedout: false,
-            body: 3
-        },
-        message: 'error',
-        vargs: [ new Error('thrown') ]
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 0,
-            waited: 1,
-            timedout: true,
-            body: 4
+            body: 4,
+            error: null
         },
         message: 'did not timeout'
     }, {
@@ -52,9 +44,10 @@ function prove (async, assert) {
             when: 0,
             waited: 1,
             timedout: true,
-            body: 5
+            body: 5,
+            error: null
         },
-        message: 'enqueue'
+        message: 'timedout'
     }, {
         envelope: {
             module: 'turnstile',
@@ -62,9 +55,66 @@ function prove (async, assert) {
             when: 1,
             waited: 0,
             timedout: false,
-            body: 6
+            body: 6,
+            error: null
         },
-        message: 'enqueue'
+        message: 'resume after timeout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 7,
+            error: null
+        },
+        message: 'thrown',
+        vargs: [ new Error('thrown') ]
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 8,
+            error: null
+        },
+        message: 'timedout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 9,
+            error: null
+        },
+        message: 'resume after timeout'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 10,
+            error: null
+        },
+        message: 'before pause'
+    }, {
+        envelope: {
+            module: 'turnstile',
+            method: 'enter',
+            when: 1,
+            waited: 0,
+            timedout: false,
+            body: 11,
+            error: null
+        },
+        message: 'closed'
     }]
     var object = {
         method: function (envelope, callback) {
@@ -110,23 +160,13 @@ function prove (async, assert) {
             completed: async(),
             body: 2
         })
-        turnstile.enter({
-            checkpoint: true,
-            completed: async()
-        })
-    }, [function () {
-        turnstile.enter({
-            object: object,
-            method: object.method,
-            completed: async(),
-            body: 3
-        })
-    }, function (error) {
-        assert(error.message, 'thrown', 'caught')
-    }], function () {
+    }, function () {
+        var wait
         turnstile.enter({               // starts loop
             object: object,
-            method: object.method,
+            method: function (envelope, callback) {
+                wait = [ envelope, callback ]
+            },
             completed: async(),
             body: 4
         })
@@ -143,5 +183,71 @@ function prove (async, assert) {
             completed: async(),
             body: 6
         })
+        object.method.apply(object, wait)
+    }, [function () {
+        // TODO When you error and you've passed a completed method, what does
+        // the completed method return? It can't return an error because we
+        // don't want to push errors back through the queue.
+        turnstile.listen(async())
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            body: 7
+        })
+    }, function (error) {
+        assert(/^turnstile#exception$/m.test(error.message), 'caught')
+        assert(turnstile.shift().error.message, 'thrown', 'shifted')
+        assert(turnstile.shift(), null, 'empty')
+        assert(turnstile.paused, 'paused')
+    }], function () {
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 8
+        })
+        turnstile.enter({
+            object: object,
+            method: object.method,
+            completed: async(),
+            body: 9
+        })
+        turnstile.resume()
+    }, function () {
+        turnstile.listen(async())
+        turnstile.pause()
+    }, function () {
+        assert(true, 'pause no waiting')
+        var wait
+        turnstile.resume()
+        turnstile.enter({
+            method: function (envelope, callback) {
+                wait = [ envelope, callback ]
+            },
+            completed: async(),
+            body: 10
+        })
+        turnstile.pause()
+        object.method.apply(object, wait)
+    }, function () {
+        assert(true, 'pause no waiting')
+        turnstile.resume()
+        turnstile.listen(async())
+        var wait
+        turnstile.enter({
+            method: function (envelope, callback) {
+                wait = [ envelope, callback ]
+            },
+            body: 11
+        })
+        turnstile.close()
+        object.method.apply(object, wait)
+    }, function () {
+        assert(turnstile.closed, 'drained and closed')
+        turnstile = new Turnstile
+        turnstile.listen(async())
+        turnstile.close()
+    }, function () {
+        assert(turnstile.closed, 'closed immediately')
     })
 }
