@@ -147,7 +147,7 @@ function prove (async, assert) {
     var turnstile = new Turnstile({
         Date: { now: function () { return now } },
         timeout: 1
-    }, function () { return abend })
+    })
     async(function () {
         turnstile.enter({
             object: object,
