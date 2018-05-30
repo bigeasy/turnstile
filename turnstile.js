@@ -8,6 +8,9 @@ var coalesce = require('extant')
 // Do nothing.
 var noop = require('nop')
 
+// Asynchronous semaphore.
+var Signal = require('signal')
+
 var interrupt = require('interrupt').createInterrupter('turnstile')
 
 // Create a turnstile that will invoke the given operation with each entry
@@ -46,6 +49,7 @@ function Turnstile (options) {
     this._callbacks = { occupied: [], rejecting: [] }
     this._listener = abend
     this.errors = []
+    this.errored = new Signal
     this.health.occupied = 0
     this.health.waiting = 0
     this.health.rejecting = 0
@@ -128,6 +132,8 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
                 })
             })()
         }, function (error) {
+            // Notify anyone listening of pending destruction.
+            this.errored.unlatch()
             // Put the error in the task so we can see that it failed if we try
             // to run it again.
             task.error = error

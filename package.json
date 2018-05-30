@@ -25,7 +25,8 @@
                             "extant":                       "1.0.x",
                             "interrupt":                    "6.2.x",
                             "nop":                          "1.0.x",
-                            "operation":                    "1.6.x"
+                            "operation":                    "1.6.x",
+                            "signal":                       "3.4.x"
     },
     "devDependencies":
     {
