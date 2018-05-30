@@ -145,7 +145,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
             // Increment the waiting count.
             this.health.waiting++
             // Throw a wrapped exception that has all the envelope properties.
-            throw new interrupt('exception', error, {}, {
+            throw interrupt('exception', error, {}, {
                 properties: envelope
             })
         }])
