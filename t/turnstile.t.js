@@ -1,4 +1,4 @@
-require('proof')(20, require('cadence')(prove))
+require('proof')(13, require('cadence')(prove))
 
 function prove (async, assert) {
     var abend = require('abend')
@@ -100,17 +100,6 @@ function prove (async, assert) {
             when: 1,
             waited: 0,
             timedout: false,
-            body: 10,
-            error: null
-        },
-        message: 'before pause'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
             body: 11,
             error: null
         },
@@ -195,59 +184,23 @@ function prove (async, assert) {
             body: 7
         })
     }, function (error) {
-        assert(/^turnstile#exception$/m.test(error.message), 'caught')
-        assert(turnstile.shift().error.message, 'thrown', 'shifted')
-        assert(turnstile.shift(), null, 'empty')
-        assert(turnstile.paused, 'paused')
-    }], function () {
         turnstile.enter({
             object: object,
             method: object.method,
-            completed: async(),
             body: 8
         })
-        turnstile.enter({
-            object: object,
-            method: object.method,
-            completed: async(),
-            body: 9
+        assert(/^turnstile#error$/m.test(error.message), 'caught')
+        assert(turnstile.drain.shift().error.message, 'thrown', 'shifted')
+        assert(turnstile.drain.shift().body, 8, 'in queue')
+        assert(turnstile.drain.shift(), null, 'empty')
+        assert(turnstile.paused, 'paused')
+    }], function () {
+        var turnstile = new Turnstile({
+            Date: { now: function () { return now } },
+            timeout: 1
         })
-        turnstile.resume()
-    }, function () {
-        turnstile.listen(async())
-        turnstile.pause()
-    }, function () {
-        assert(true, 'pause no waiting')
-        var wait
-        turnstile.resume()
-        turnstile.enter({
-            method: function (envelope, callback) {
-                wait = [ envelope, callback ]
-            },
-            completed: async(),
-            body: 10
-        })
-        turnstile.pause()
-        object.method.apply(object, wait)
-    }, function () {
-        assert(true, 'pause no waiting')
-        turnstile.resume()
-        turnstile.listen(async())
-        var wait
-        turnstile.enter({
-            method: function (envelope, callback) {
-                wait = [ envelope, callback ]
-            },
-            body: 11
-        })
-        turnstile.close()
-        object.method.apply(object, wait)
-    }, function () {
-        assert(turnstile.closed, 'drained and closed')
-        turnstile = new Turnstile
         turnstile.listen(async())
         turnstile.close()
     }, function () {
-        assert(turnstile.closed, 'closed immediately')
     })
 }

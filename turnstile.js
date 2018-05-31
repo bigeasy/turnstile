@@ -13,6 +13,8 @@ var Signal = require('signal')
 
 var interrupt = require('interrupt').createInterrupter('turnstile')
 
+var Drain = require('./drain')
+
 // Create a turnstile that will invoke the given operation with each entry
 // pushed into the work queue.
 
@@ -24,13 +26,6 @@ function _stopRejector (turnstile) {
     return turnstile.paused
         || turnstile.health.waiting == 0
         || turnstile._Date.now() - turnstile._head.next.when <= turnstile.timeout
-}
-
-function createCallback (turnstile, type) {
-    function callback (error) {
-        turnstile._calledback(error, type)
-    }
-    return callback
 }
 
 //
@@ -49,6 +44,7 @@ function Turnstile (options) {
     this._callbacks = { occupied: [], rejecting: [] }
     this._listener = abend
     this.errors = []
+    this._failures = []
     this.errored = new Signal
     this.health.occupied = 0
     this.health.waiting = 0
@@ -88,7 +84,6 @@ Turnstile.prototype.enter = function (envelope) {
 }
 
 Turnstile.prototype._work = cadence(function (async, counter, stopper) {
-    var servered = false
     // We increment and decrement a counter based on whether we're working
     // through tasks or rejecting them because they've expired.
     async([function () {
@@ -96,7 +91,7 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
     }], function () {
         this.health[counter]++
     }, function () {
-        var task, envelope
+        var task, envelope // TODO Wrong scope and dubious respectively.
         async([function () {
             // Work through the work in the queue.
             var loop = async(function () {
@@ -134,40 +129,38 @@ Turnstile.prototype._work = cadence(function (async, counter, stopper) {
         }, function (error) {
             // Notify anyone listening of pending destruction.
             this.errored.unlatch()
-            // Put the error in the task so we can see that it failed if we try
-            // to run it again.
-            task.error = error
-            // Push the work back onto the front of the queue.
-            task.next = this._head.next
-            task.previous = this._head
-            task.next.previous = task
-            task.previous.next = task
-            // Increment the waiting count.
-            this.health.waiting++
-            // Throw a wrapped exception that has all the envelope properties.
-            throw interrupt('exception', error, {}, {
-                properties: envelope
+            // Mark destroyed?
+            this.paused = true
+            // Save the error for an exception we'd like to raise.
+            this.errors.push(error)
+            // Save the task so we can return it from a drain.
+            this._failures.push({
+                module: 'turnstile',
+                when: task.when,
+                body: task.body,
+                error: error
             })
         }])
     })
 })
 
 Turnstile.prototype._stack = function (type, stopper) {
-    this._work(type, stopper, this._callbacks[type].shift() || createCallback(this, type))
+    var self = this
+    this._work(type, stopper, function () { self._calledback() })
 }
 
-Turnstile.prototype._calledback = function (error) {
-    if (error) {
-        this.paused = true
-        this.errors.push(error)
-    }
+Turnstile.prototype._calledback = function () {
     if (
         (this.paused || (this.closed && this.health.waiting == 0)) &&
         this.health.occupied == 0 && this.health.rejecting == 0
     ) {
+        this.drain = new Drain(this.health.waiting, this._head, this._failures)
         var listener = [ this._listener, this._listener = abend ][0]
         if (this.errors.length) {
-            listener(this.errors[0])
+            listener(interrupt('error', this.errors.slice(), {
+                module: 'turnstile',
+                health: this.health
+            }))
         } else {
             listener()
         }
@@ -178,46 +171,9 @@ Turnstile.prototype.listen = function (callback) {
     this._listener = callback
 }
 
-Turnstile.prototype.pause = function () {
-    this.paused = true
-    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting == 0) {
-        [ this._listener, this._listener = abend ][0]()
-    }
-}
-
-Turnstile.prototype.resume = function () {
-    interrupt.assert(this.paused && this.health.occupied == 0 && this.health.rejecting == 0, 'unpaused')
-    this.paused = false
-    this.errors.splice(0, this.errors.length)
-    while (this.health.waiting && this.health.occupied < this.health.turnstiles) {
-        this._stack('occupied', _stopWorker)
-    }
-}
-
 Turnstile.prototype.close = function () {
     this.closed = true
-    if (this.health.waiting == 0 && this.health.occupied == 0 && this.health.rejecting == 0) {
-        [ this._listener, this._listener = abend ][0]()
-    }
-}
-
-Turnstile.prototype.shift = function () {
-    if (this._head.next === this._head) {
-        return null
-    }
-    var task = this._head.next
-    this._head.next = task.next
-    this._head.next.previous = this._head
-    this.health.waiting--
-    return {
-        error: task.error,
-        object: task.object,
-        method: task.method,
-        when: task.when,
-        body: task.body,
-        started: task.started,
-        completed: task.completed
-    }
+    this._calledback()
 }
 
 module.exports = Turnstile
