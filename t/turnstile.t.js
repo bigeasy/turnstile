@@ -3,7 +3,7 @@ require('proof')(13, require('cadence')(prove))
 function prove (async, assert) {
     var abend = require('abend')
     var Turnstile = require('..')
-    var Operation = require('operation/variadic')
+    var Operation = require('operation')
     var expectations = [{
         envelope: {
             module: 'turnstile',
