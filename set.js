@@ -1,5 +1,5 @@
 var coalesce = require('extant')
-var Operation = require('operation/variadic')
+var Operation = require('operation')
 
 function Set () {
     var vargs = Array.prototype.slice.call(arguments)

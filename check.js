@@ -1,5 +1,5 @@
 var Turnstile = { Set: require('./set') }
-var Operation = require('operation/variadic')
+var Operation = require('operation')
 
 function Check () {
     var vargs = Array.prototype.slice.call(arguments)

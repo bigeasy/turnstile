@@ -5,7 +5,7 @@ var cadence = require('cadence')
 var coalesce = require('extant')
 
 // Contextualized callbacks and event handlers.
-var Operation = require('operation/variadic')
+var Operation = require('operation')
 
 // Do nothing.
 var nop = require('nop')
