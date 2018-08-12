@@ -11,7 +11,7 @@ var noop = require('nop')
 // Asynchronous semaphore.
 var Signal = require('signal')
 
-var interrupt = require('interrupt').createInterrupter('turnstile')
+var Interrupt = require('interrupt').createInterrupter('turnstile')
 
 var Drain = require('./drain')
 
@@ -157,7 +157,8 @@ Turnstile.prototype._calledback = function () {
         this.drain = new Drain(this.health.waiting, this._head, this._failures)
         var listener = [ this._listener, this._listener = abend ][0]
         if (this.errors.length) {
-            listener(interrupt('error', this.errors.slice(), {
+            listener(new Interrupt('error', {
+                causes: this.errors.map(function (error) { return [ error ] }),
                 module: 'turnstile',
                 health: this.health
             }))
