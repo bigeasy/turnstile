@@ -52,10 +52,7 @@ Turnstile.prototype.enter = function (envelope) {
     if (this.health.occupied < this.health.turnstiles) {
         this._stack('occupied', false)
     } else if (this.health.rejecting == 0 && now >= this._head.next.timesout) {
-        console.log('no start enter ---> ', this._head.next.body)
         this._stack('rejecting', true)
-    } else {
-        console.log('no start enter')
     }
 }
 
@@ -89,7 +86,6 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 this.health.waiting--
                 // Run the task and mark it as completed if it succeeds.
                 var timedout = task.timesout <= now
-                console.log('now', counter, now)
                 var waited = now - task.when
                 canceled = this.destroyed || timedout
                 async(function () {
@@ -104,7 +100,6 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                         body: task.body
                     }, async())
                 }, [], function (vargs) {
-                    console.log(vargs)
                     vargs.unshift(null)
                     task.completed.apply(null, vargs)
                 })
