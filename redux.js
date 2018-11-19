@@ -64,7 +64,7 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
     }], function () {
         this.health[counter]++
     }, function () {
-        var canceled = false
+        var task, canceled
         var errored = async([function () {
             // Work through the work in the queue.
             var loop = async(function () {
@@ -80,7 +80,7 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                     return [ errored.break ]
                 }
                 // Shift a task off of the work queue.
-                var task = this._head.next
+                task = this._head.next
                 this._head.next = task.next
                 this._head.next.previous = this._head
                 this.health.waiting--
@@ -112,6 +112,8 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 this.destroyed = true
                 // Save the error for an exception we'd like to raise.
                 this.errors.push(error)
+                // Return error to caller, if there is a caller.
+                task.completed.call(null, error)
             }
         }])()
     })
