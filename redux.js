@@ -8,7 +8,19 @@ var coalesce = require('extant')
 // Do nothing.
 var noop = require('nop')
 
+// Exceptions you can catch by type.
 var Interrupt = require('interrupt').createInterrupter('turnstile')
+
+// Construct a turnstile.
+//
+// `options`
+//
+//  * `turnstiles` ~ number of concurrent invocations of the worker
+//  function.
+//  * `timeout` ~ time in millisecond before marking a task as timedout and
+//  invoking the worker function for task cancelation.
+//  * `Date` ~ provide a dummy date implementation, useful for unit testing
+//  task timeouts.
 
 //
 function Turnstile (options) {
@@ -31,8 +43,18 @@ function Turnstile (options) {
     this._Date = coalesce(options.Date, Date)
 }
 
-// TODO If you do want to drain, maybe push some sort of special drain work onto
-// the queue.
+// Enter work into the queue. Properties of the `envelope` argument can include:
+//
+//  * `body` ~ body of task, your data, or `null` if not specified.
+//  * `method` ~ the work function.
+//  * `object` ~ the object to use as the `this` property of the work function
+//  invocation, or `null` if not specified.
+//  * `completed` ~ an error-first callback function to invoke with the result
+//  of the work function.
+//  * `when` ~ time to use as the start time of the task or `Date.now()` if not
+//  specified.
+
+//
 Turnstile.prototype.enter = function (envelope) {
     var now = this._Date.now()
     var when = coalesce(envelope.when, now)
@@ -50,12 +72,30 @@ Turnstile.prototype.enter = function (envelope) {
     task.previous.next = task
     this.health.waiting++
     if (this.health.occupied < this.health.turnstiles) {
-        this._stack('occupied', false)
+        this._turnstile('occupied', false)
     } else if (this.health.rejecting == 0 && now >= this._head.next.timesout) {
-        this._stack('rejecting', true)
+        this._turnstile('rejecting', true)
     }
 }
 
+// Perform work.
+//
+// We have two nested loops. The inner loop is a best-foot-forward loop, if
+// there is no error as there shouldn't be, it will forgo the overhead of a
+// try/catch block while chewing through a backlog. This optimzation may not be
+// that much of an optimization and simpler would be better so we should
+// TODO benchmark it at some point.
+//
+// If we catch an error from the work function for a canceled task we through it
+// and we hope it blows the whole application up because it's too late to do
+// anything meaningful at all with an exception. We used to use `abend` to
+// ensure calamity befalls our dear user, but I'm curious to see if this can be
+// raised and not swallowed with my current exception handling disciplines.
+//
+// But if we get an error form the work function for an actual task, we'll
+// record it and report it as so as we're done destroying ourselves.
+
+//
 Turnstile.prototype._work = cadence(function (async, counter, rejector) {
     // We increment and decrement a counter based on whether we're working
     // through tasks or rejecting them because they've expired.
@@ -64,7 +104,10 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
     }], function () {
         this.health[counter]++
     }, function () {
+        //
         var task, canceled
+        // Outer loop for error handling, which is off the happy path. (See
+        // above.)
         var errored = async([function () {
             // Work through the work in the queue.
             var loop = async(function () {
@@ -73,8 +116,8 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 if (
                     this.health.waiting == 0 ||
                     (
-                        rejector
-                        && this._head.next.timesout >= now
+                        counter == 'rejecting' &&
+                        this._head.next.timesout >= now
                     )
                 ) {
                     return [ errored.break ]
@@ -106,22 +149,29 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
             })()
         }, function (error) {
             if (canceled) {
+                // Maximum panic.
                 throw error
             } else {
-                // Mark destroyed.
+                // Mark this Turnstile destroyed.
                 this.destroyed = true
-                // Save the error for an exception we'd like to raise.
+                // Take note of the exception for our summary exception while
+                // returning it to the caller.
                 this.errors.push(error)
-                // Return error to caller, if there is a caller.
                 task.completed.call(null, error)
             }
         }])()
     })
 })
 
-Turnstile.prototype._stack = function (type, reject) {
+// Start an asynchronous loop to consume work on the work queue. The `counter`
+// indicates which counter to increment in `heath`, either `occupied` to
+// indicate a running turnstile or `rejecting` for the special rejector
+// turnstile that only processes timedout tasks.
+
+//
+Turnstile.prototype._turnstile = function (counter) {
     var self = this
-    this._work(type, reject, function (error) { self._calledback(error) })
+    this._work(counter, function (error) { self._calledback(error) })
 }
 
 Turnstile.prototype._calledback = function (error) {
