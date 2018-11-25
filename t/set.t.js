@@ -10,7 +10,6 @@ function prove (async, okay) {
             method: 'enter',
             when: 0,
             waited: 0,
-            destroyed: false,
             canceled: false,
             timedout: false,
             body: 'a'
@@ -22,7 +21,6 @@ function prove (async, okay) {
             method: 'enter',
             when: 0,
             waited: 0,
-            destroyed: false,
             canceled: false,
             timedout: false,
             body: 'b'

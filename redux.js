@@ -137,7 +137,6 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                         method: 'enter',
                         when: task.when,
                         waited: now - task.when,
-                        destroyed: this.destroyed,
                         timedout: timedout,
                         canceled: canceled,
                         body: task.body

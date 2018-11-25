@@ -23,7 +23,6 @@ function prove (okay) {
                 method: 'enter',
                 when: 0,
                 waited: 0,
-                destroyed: false,
                 timedout: false,
                 canceled: false,
                 body: 0
@@ -49,7 +48,6 @@ function prove (okay) {
                 method: 'enter',
                 when: 0,
                 waited: 2,
-                destroyed: false,
                 timedout: true,
                 canceled: true,
                 body: 1
@@ -77,7 +75,6 @@ function prove (okay) {
                 method: 'enter',
                 when: 2,
                 waited: 0,
-                destroyed: false,
                 timedout: false,
                 canceled: false,
                 body: 2
@@ -106,7 +103,6 @@ function prove (okay) {
                 method: 'enter',
                 when: 2,
                 waited: 0,
-                destroyed: true,
                 timedout: false,
                 canceled: true,
                 body: 2
