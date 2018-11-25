@@ -108,9 +108,9 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
         var task, canceled
         // Outer loop for error handling, which is off the happy path. (See
         // above.)
-        var errored = async([function () {
+        var errored = async.loop([], [function () {
             // Work through the work in the queue.
-            var loop = async(function () {
+            async.loop([], function () {
                 var now = this._Date.now()
                 // Loop exit.
                 if (
@@ -145,7 +145,7 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                     vargs.unshift(null)
                     task.completed.apply(null, vargs)
                 })
-            })()
+            })
         }, function (error) {
             if (canceled) {
                 // Maximum panic.
@@ -158,7 +158,7 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 this.errors.push(error)
                 task.completed.call(null, error)
             }
-        }])()
+        }])
     })
 })
 
