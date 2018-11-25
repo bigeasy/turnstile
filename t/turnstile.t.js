@@ -1,206 +1,144 @@
-require('proof')(13, require('cadence')(prove))
+require('proof')(12, prove)
 
-function prove (async, okay) {
-    var abend = require('abend')
+function prove (okay) {
     var Turnstile = require('..')
-    var Operation = require('operation')
-    var expectations = [{
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 0,
-            waited: 0,
-            timedout: false,
-            body: 1,
-            error: null
-        },
-        message: 'push'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 0,
-            waited: 0,
-            timedout: false,
-            body: 2,
-            error: null
-        },
-        message: 'enqueue'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 0,
-            waited: 0,
-            timedout: false,
-            body: 4,
-            error: null
-        },
-        message: 'did not timeout'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 0,
-            waited: 1,
-            timedout: true,
-            body: 5,
-            error: null
-        },
-        message: 'timedout'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
-            body: 6,
-            error: null
-        },
-        message: 'resume after timeout'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
-            body: 7,
-            error: null
-        },
-        message: 'thrown',
-        vargs: [ new Error('thrown') ]
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
-            body: 8,
-            error: null
-        },
-        message: 'timedout'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
-            body: 9,
-            error: null
-        },
-        message: 'resume after timeout'
-    }, {
-        envelope: {
-            module: 'turnstile',
-            method: 'enter',
-            when: 1,
-            waited: 0,
-            timedout: false,
-            body: 11,
-            error: null
-        },
-        message: 'closed'
-    }]
-    var object = {
-        method: function (envelope, callback) {
-            var expected = expectations.shift()
-            okay(envelope, expected.envelope, expected.message)
-            callback.apply(null, expected.vargs || [])
-        }
-    }
-    var turnstile = new Turnstile
-    okay({
-        timeout: turnstile.timeout,
-        health: turnstile.health
-    }, {
-        timeout: Infinity,
-        health: {
-            occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1
-        }
-    }, 'defaults')
-    turnstile.reconfigure({ timeout: 1, turnstiles: 2 })
-    okay({
-        timeout: turnstile.timeout,
-        health: turnstile.health
-    }, {
-        timeout: 1,
-        health: {
-            occupied: 0, waiting: 0, rejecting: 0, turnstiles: 2
-        }
-    }, 'reconfigure')
     var now = 0
     var turnstile = new Turnstile({
         Date: { now: function () { return now } },
         timeout: 1
     })
-    async(function () {
+    turnstile.listen(function (error) {
+        okay(arguments.length, 0, 'okay exit')
+    })
+    okay(turnstile.health, {
+        occupied: 0, waiting: 0, rejecting: 0, turnstiles: 1
+    }, 'health')
+    var wait
+    turnstile.enter({
+        body: 0,
+        method: function (envelope, callback) {
+            console.log(envelope)
+            okay(envelope, {
+                module: 'turnstile',
+                method: 'enter',
+                when: 0,
+                waited: 0,
+                timedout: false,
+                canceled: false,
+                body: 0
+            }, 'entered')
+            wait = callback
+        },
+        completed: function (error, value) {
+            okay({
+                error: error,
+                value: value
+            }, {
+                error: null,
+                value: 1
+            }, 'completed')
+        }
+    })
+    turnstile.enter({
+        body: 1,
+        method: function (envelope, callback) {
+            console.log(envelope)
+            okay(envelope, {
+                module: 'turnstile',
+                method: 'enter',
+                when: 0,
+                waited: 2,
+                timedout: true,
+                canceled: true,
+                body: 1
+            }, 'timed out')
+            callback(null, 0)
+        },
+        completed: function (error, value) {
+            okay({
+                error: error,
+                value: value
+            }, {
+                error: null,
+                value: 0
+            }, 'timed out called back')
+        }
+    })
+    now += 2
+    console.log('--- again ---')
+    turnstile.enter({
+        body: 2,
+        method: function (envelope, callback) {
+            console.log(envelope)
+            okay(envelope, {
+                module: 'turnstile',
+                method: 'enter',
+                when: 2,
+                waited: 0,
+                timedout: false,
+                canceled: false,
+                body: 2
+            }, 'next entry')
+            callback(null, 2)
+        },
+        completed: function (error, value) {
+            okay({
+                error: error,
+                value: value
+            }, {
+                error: null,
+                value: 2
+            }, 'next entry completed')
+        }
+    })
+    console.log('--- wait ---')
+    wait(null, 1)
+    turnstile.destroy()
+    turnstile.enter({
+        body: 2,
+        method: function (envelope, callback) {
+            console.log(envelope)
+            okay(envelope, {
+                module: 'turnstile',
+                method: 'enter',
+                when: 2,
+                waited: 0,
+                timedout: false,
+                canceled: true,
+                body: 2
+            }, 'destroyed entry')
+            callback(null, 3)
+        },
+        completed: function (error, value) {
+            okay({
+                error: error,
+                value: value
+            }, {
+                error: null,
+                value: 3
+            }, 'destroyed completed')
+        }
+    })
+    try {
         turnstile.enter({
-            object: object,
-            method: object.method,
-            body: 1
-        })
-        turnstile.enter({
-            object: object,
-            method: object.method,
-            completed: async(),
-            body: 2
-        })
-    }, function () {
-        var wait
-        turnstile.enter({               // starts loop
-            object: object,
             method: function (envelope, callback) {
-                wait = [ envelope, callback ]
-            },
-            completed: async(),
-            body: 4
+                callback(new Error('abend'))
+            }
         })
-        turnstile.enter({               // waits on queue
-            object: object,
-            method: object.method,
-            completed: async(),
-            body: 5
-        })
-        now++
-        turnstile.enter({               // sees that waiting has expired, starts rejector
-            object: object,
-            method: object.method,
-            completed: async(),
-            body: 6
-        })
-        object.method.apply(object, wait)
-    }, [function () {
-        // TODO When you error and you've passed a completed method, what does
-        // the completed method return? It can't return an error because we
-        // don't want to push errors back through the queue.
-        turnstile.listen(async())
-        turnstile.enter({
-            object: object,
-            method: object.method,
-            body: 7
-        })
-    }, function (error) {
-        turnstile.enter({
-            object: object,
-            method: object.method,
-            body: 8
-        })
-        okay(/^turnstile#error$/m.test(error.message), 'caught')
-        okay(turnstile.drain.shift().error.message, 'thrown', 'shifted')
-        okay(turnstile.drain.shift().body, 8, 'in queue')
-        okay(turnstile.drain.shift(), null, 'empty')
-        okay(turnstile.paused, 'paused')
-    }], function () {
-        var turnstile = new Turnstile({
-            Date: { now: function () { return now } },
-            timeout: 1
-        })
-        turnstile.listen(async())
-        turnstile.close()
-    }, function () {
+    } catch (error) {
+        console.log(error.stack)
+        okay(error.causes[0].message, 'abend', 'abend')
+    }
+    var turnstile = new Turnstile({
+        Date: { now: function () { return now } },
+        timeout: 1
+    })
+    turnstile.listen(function (error) {
+        okay(error.causes[0].message, 'error', 'error')
+    })
+    turnstile.enter({
+        method: function (envelope, callback) {
+            callback(new Error('error'))
+        }
     })
 }
