@@ -1,11 +1,11 @@
 require('proof')(2, require('cadence')(prove))
 
-function prove (async, assert) {
+function prove (async, okay) {
     var Turnstile = require('..')
     Turnstile.Check = require('../check')
     var object = {
         method: function (envelope, callback) {
-            assert(envelope, {
+            okay(envelope, {
                 module: 'turnstile',
                 method: 'enter',
                 when: 0,
@@ -24,6 +24,6 @@ function prove (async, assert) {
     async(function () {
         check.check(async())
     }, function (result) {
-        assert(result, 1, 'checked')
+        okay(result, 1, 'checked')
     })
 }

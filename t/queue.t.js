@@ -1,6 +1,6 @@
 require('proof')(3, require('cadence')(prove))
 
-function prove (async, assert) {
+function prove (async, okay) {
     var Turnstile = require('..')
     Turnstile.Queue = require('../queue')
 
@@ -30,7 +30,7 @@ function prove (async, assert) {
     var object = {
         method: function (envelope, callback) {
             var expected = expect.shift()
-            assert(envelope, expected.envelope, expected.message)
+            okay(envelope, expected.envelope, expected.message)
             callback(null, envelope.body)
         }
     }
@@ -43,6 +43,6 @@ function prove (async, assert) {
         queue.enqueue(2, async())
         queue.wait(async())
     }, function (result) {
-        assert(result, 2, 'returned')
+        okay(result, 2, 'returned')
     })
 }

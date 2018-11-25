@@ -1,6 +1,6 @@
 require('proof')(13, require('cadence')(prove))
 
-function prove (async, assert) {
+function prove (async, okay) {
     var abend = require('abend')
     var Turnstile = require('..')
     var Operation = require('operation')
@@ -108,12 +108,12 @@ function prove (async, assert) {
     var object = {
         method: function (envelope, callback) {
             var expected = expectations.shift()
-            assert(envelope, expected.envelope, expected.message)
+            okay(envelope, expected.envelope, expected.message)
             callback.apply(null, expected.vargs || [])
         }
     }
     var turnstile = new Turnstile
-    assert({
+    okay({
         timeout: turnstile.timeout,
         health: turnstile.health
     }, {
@@ -123,7 +123,7 @@ function prove (async, assert) {
         }
     }, 'defaults')
     turnstile.reconfigure({ timeout: 1, turnstiles: 2 })
-    assert({
+    okay({
         timeout: turnstile.timeout,
         health: turnstile.health
     }, {
@@ -189,11 +189,11 @@ function prove (async, assert) {
             method: object.method,
             body: 8
         })
-        assert(/^turnstile#error$/m.test(error.message), 'caught')
-        assert(turnstile.drain.shift().error.message, 'thrown', 'shifted')
-        assert(turnstile.drain.shift().body, 8, 'in queue')
-        assert(turnstile.drain.shift(), null, 'empty')
-        assert(turnstile.paused, 'paused')
+        okay(/^turnstile#error$/m.test(error.message), 'caught')
+        okay(turnstile.drain.shift().error.message, 'thrown', 'shifted')
+        okay(turnstile.drain.shift().body, 8, 'in queue')
+        okay(turnstile.drain.shift(), null, 'empty')
+        okay(turnstile.paused, 'paused')
     }], function () {
         var turnstile = new Turnstile({
             Date: { now: function () { return now } },

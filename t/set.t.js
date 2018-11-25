@@ -1,6 +1,6 @@
 require('proof')(3, require('cadence')(prove))
 
-function prove (async, assert) {
+function prove (async, okay) {
     var Turnstile = require('..')
     Turnstile.Set = require('../set')
 
@@ -31,7 +31,7 @@ function prove (async, assert) {
     var object = {
         method: function (envelope, callback) {
             var expected = expect.shift()
-            assert(envelope, expected.envelope, expected.message)
+            okay(envelope, expected.envelope, expected.message)
             setImmediate(callback, null, 1)
         }
     }
@@ -44,6 +44,6 @@ function prove (async, assert) {
         set.add('b')
         set.add('b', async())
     }, function (result) {
-        assert(result, 1, 'called')
+        okay(result, 1, 'called')
     })
 }
