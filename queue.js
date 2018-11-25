@@ -5,7 +5,7 @@ var cadence = require('cadence')
 var coalesce = require('extant')
 
 // Contextualized callbacks and event handlers.
-var Operation = require('operation')
+var operation = require('operation')
 
 // Do nothing.
 var nop = require('nop')
@@ -13,8 +13,8 @@ var nop = require('nop')
 function checkpoint (envelope, callback) {  callback() }
 
 function Queue () {
-    var vargs = Array.prototype.slice.call(arguments)
-    this._operation = Operation(vargs)
+    var vargs = operation.vargs.apply(operation, arguments)
+    this._operation = vargs.shift()
     this.turnstile = vargs.shift()
 }
 

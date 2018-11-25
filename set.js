@@ -1,11 +1,11 @@
 var coalesce = require('extant')
-var Operation = require('operation')
+var operation = require('operation')
 
 function Set () {
-    var vargs = Array.prototype.slice.call(arguments)
-    this._operation = Operation(vargs)
-    this._sets = {}
+    var vargs = operation.vargs.apply(operation, arguments)
+    this._operation = vargs.shift()
     this.turnstile = vargs.shift()
+    this._sets = {}
 }
 
 Set.prototype._pop = function (envelope, callback) {

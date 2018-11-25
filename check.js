@@ -1,9 +1,9 @@
 var Turnstile = { Set: require('./set') }
-var Operation = require('operation')
+var operation = require('operation')
 
 function Check () {
-    var vargs = Array.prototype.slice.call(arguments)
-    this._operation = Operation(vargs)
+    var vargs = operation.vargs.apply(operation, arguments)
+    this._operation = vargs.shift()
     this._set = new Turnstile.Set(this, '_check', vargs.shift())
     this.turnstile = this._set.turnstile
 }
