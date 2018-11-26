@@ -132,6 +132,7 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 var waited = now - task.when
                 canceled = this.destroyed || timedout
                 async(function () {
+                    console.log('calleing')
                     task.method.call(task.object, {
                         module: 'turnstile',
                         method: 'enter',
@@ -142,11 +143,13 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                         body: task.body
                     }, async())
                 }, [], function (vargs) {
+                    console.log('-- done --')
                     vargs.unshift(null)
                     task.completed.apply(null, vargs)
                 })
             })
         }, function (error) {
+            console.log('--- will error ---')
             if (canceled) {
                 // Maximum panic.
                 throw error
@@ -186,7 +189,7 @@ Turnstile.prototype._calledback = function (error) {
         var listener = [ this._listener, this._listener = abend ][0]
         if (this.errors.length) {
             listener(new Interrupt('error', {
-                causes: this.errors.map(function (error) { return [ error ] }),
+                causes: this.errors.splice(0).map(function (error) { return [ error ] }),
                 module: 'turnstile',
                 health: this.health
             }))
@@ -201,8 +204,10 @@ Turnstile.prototype.listen = function (callback) {
 }
 
 Turnstile.prototype.destroy = function () {
-    this.destroyed = true
-    this._calledback()
+    if (!this.destroyed) {
+        this.destroyed = true
+        this._calledback()
+    }
 }
 
 module.exports = Turnstile
