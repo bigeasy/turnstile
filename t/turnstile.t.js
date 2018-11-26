@@ -142,4 +142,9 @@ function prove (okay) {
             callback(new Error('error'))
         }
     })
+    console.log(turnstile.errors)
+    // Should do nothing, but was once re-raising the final error.
+    turnstile.enter({
+        method: function (envelope, callback) { callback() }
+    })
 }
