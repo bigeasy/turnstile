@@ -94,6 +94,7 @@ function prove (okay) {
     console.log('--- wait ---')
     wait(null, 1)
     turnstile.destroy()
+    turnstile.destroy()
     turnstile.enter({
         body: 2,
         method: function (envelope, callback) {
