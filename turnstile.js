@@ -35,6 +35,7 @@ function Turnstile (options) {
         turnstiles: coalesce(options.turnstiles, 1)
     }
     this._listener = abend
+    this._callback = null
     this.errors = []
     this.health.occupied = 0
     this.health.waiting = 0
@@ -132,7 +133,6 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                 var waited = now - task.when
                 canceled = this.destroyed || timedout
                 async(function () {
-                    console.log('calleing')
                     task.method.call(task.object, {
                         module: 'turnstile',
                         method: 'enter',
@@ -143,19 +143,18 @@ Turnstile.prototype._work = cadence(function (async, counter, rejector) {
                         body: task.body
                     }, async())
                 }, [], function (vargs) {
-                    console.log('-- done --')
                     vargs.unshift(null)
                     task.completed.apply(null, vargs)
                 })
             })
         }, function (error) {
-            console.log('--- will error ---')
             if (canceled) {
                 // Maximum panic.
                 throw error
             } else {
                 // Mark this Turnstile destroyed.
                 this.destroyed = true
+                this._callback = this._listener
                 // Take note of the exception for our summary exception while
                 // returning it to the caller.
                 this.errors.push(error)
@@ -182,19 +181,20 @@ Turnstile.prototype._calledback = function (error) {
         throw new Interrupt('canceled', { causes: [[ error ]] })
     } else if (
         this.destroyed &&
+        this._callback &&
         this.health.waiting == 0 &&
         this.health.occupied == 0 &&
         this.health.rejecting == 0
     ) {
-        var listener = [ this._listener, this._listener = abend ][0]
+        var callback = [ this._callback, this._callback = null ][0]
         if (this.errors.length) {
-            listener(new Interrupt('error', {
-                causes: this.errors.splice(0).map(function (error) { return [ error ] }),
+            callback(new Interrupt('error', {
+                causes: this.errors.map(function (error) { return [ error ] }),
                 module: 'turnstile',
                 health: this.health
             }))
         } else {
-            listener()
+            callback()
         }
     }
 }
@@ -206,6 +206,7 @@ Turnstile.prototype.listen = function (callback) {
 Turnstile.prototype.destroy = function () {
     if (!this.destroyed) {
         this.destroyed = true
+        this._callback = this._listener
         this._calledback()
     }
 }
