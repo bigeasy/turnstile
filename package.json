@@ -23,7 +23,7 @@
                             "abend":                        "1.0.x",
                             "cadence":                      "3.0.x",
                             "extant":                       "1.0.x",
-                            "interrupt":                    "6.4.x",
+                            "interrupt":                    "7.0.x",
                             "nop":                          "1.0.x",
                             "operation":                    "5.0.x"
     },
