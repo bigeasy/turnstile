@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/bigeasy/turnstile.svg?branch=master)](https://travis-ci.org/bigeasy/turnstile) [![Coverage Status](https://coveralls.io/repos/bigeasy/turnstile/badge.svg?branch=master&service=github)](https://coveralls.io/github/bigeasy/turnstile?branch=master)
-
 Turnstile is part of the [Cadence](https://github.com/bigeasy/cadence) Universe.
 It is a work queue primitive that feeds work into an error first callback. This
 is how I do parallel operations, in an orderly fashion;
