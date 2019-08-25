@@ -20,20 +20,17 @@
     },
     "dependencies":
     {
-                            "abend":                        "1.0.x",
-                            "cadence":                      "3.0.x",
+                            "avenue":                       "0.1.x",
                             "extant":                       "1.0.x",
-                            "interrupt":                    "7.0.x",
-                            "nop":                          "1.0.x",
-                            "operation":                    "5.0.x"
+                            "interrupt":                    "8.0.x"
     },
     "devDependencies":
     {
-                            "proof":                        "7.0.x"
+                            "destructible":                 "4.0.x"
     },
     "main":                 "turnstile",
     "scripts":
     {
-                            "test": "proof test test/*.t.js"
+                            "test": "mocha test/*.test.js"
     }
 }
