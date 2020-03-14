@@ -7,11 +7,6 @@ async function prove (okay) {
 
     const test = []
 
-    const object = {
-        method: function (entry) {
-        }
-    }
-
     const destructible = new Destructible('t/queue.t')
     const turnstile = new Turnstile(destructible, { Date: { now: () => 0 } })
     const queue = new Turnstile.Queue(turnstile, function (entry) {
