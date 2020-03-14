@@ -19,9 +19,9 @@ async function prove (okay) {
     }
     [ 'first', 'second', 'third' ].map(name => addFuture(name))
     turnstile.enter({
-        method: async (value, state) => {
-            test.push(state)
-            futures.first.resolve(value)
+        method: async (entry) => {
+            test.push(entry)
+            futures.first.resolve(entry.body)
             await futures.second.promise
         },
         body: 'a'
@@ -29,17 +29,17 @@ async function prove (okay) {
     await new Promise(resolve => setImmediate(resolve))
     // This will reject because it is going to push and then be timed out.
     turnstile.enter({
-        method: async function (value, state) {
-            test.push(state)
+        method: async function (entry) {
+            test.push(entry)
         },
         body: 1,
         object: { property: 1 },
         when: -3
     })
     turnstile.enter({
-        method: async function (value, state) {
-            test.push(state)
-            futures.third.resolve(this.property + value)
+        method: async function (entry) {
+            test.push(entry)
+            futures.third.resolve(this.property + entry.body)
         },
         body: 1,
         object: { property: 1 },
@@ -51,16 +51,19 @@ async function prove (okay) {
     turnstile.drain()
     await destructible.promise
     okay(test, [{
+        body: 'a',
         canceled: false,
         timedout: false,
         waited: 0,
         when: 0
     }, {
+        body: 1,
         canceled: true,
         timedout: true,
         waited: 3,
         when: -3
     }, {
+        body: 1,
         canceled: false,
         timedout: false,
         waited: 0,

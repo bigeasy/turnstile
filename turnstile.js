@@ -144,8 +144,11 @@ class Turnstile {
                 const timedout = entry.timesout <= now
                 const waited = now - entry.when
                 const canceled = this.destroyed || timedout
-                await entry.method.call(entry.object, entry.body, {
-                    when: entry.when, waited: now - entry.when, timedout,  canceled
+                await entry.method.call(entry.object, {
+                    body: entry.body,
+                    when: entry.when,
+                    waited: now - entry.when,
+                    timedout, canceled
                 })
             }
         } finally {
@@ -172,8 +175,12 @@ class Turnstile {
         for await (const entry of shifter.iterator()) {
             const now = this._Date.now()
             try {
-                await entry.method.call(entry.object, entry.body, {
-                    when: entry.when, waited: now - entry.when, timedout: true , canceled: true
+                await entry.method.call(entry.object, {
+                    body: entry.body,
+                    when: entry.when,
+                    waited: now - entry.when,
+                    timedout: true ,
+                    canceled: true
                 })
             } finally {
                 this.health.rejecting--
