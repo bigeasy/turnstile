@@ -11,11 +11,11 @@ class Queue {
         this.turnstile.enter({ ...this._entry, body: value })
     }
 
-    enqueue (value, callback) {
+    enqueue (value) {
         return new Promise(resolve => {
             this.turnstile.enter({
-                method: (entry) => {
-                    resolve(this._entry.method.call(this._entry.object, entry))
+                method: async (entry) => {
+                    resolve(await this._entry.method.call(this._entry.object, entry))
                 },
                 body: value
             })
