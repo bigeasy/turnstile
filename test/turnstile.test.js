@@ -35,7 +35,7 @@ async function prove (okay) {
     okay(await futures.first.promise, 'a', 'first work')
     futures.second.resolve()
     okay(await futures.third.promise, 2, 'second work')
-    turnstile.destroy()
+    turnstile.drain()
     await destructible.promise
     okay(test, [{
         canceled: false,

@@ -42,8 +42,24 @@ class Turnstile {
         destructible.destruct(() => this._rejected.push(null))
     }
 
-    destroy () {
-        this._destructible.destroy()
+    // We need to destroy explicity. Seems like we want to forgo time timeout
+    // mechanism, because we did something similar to that in Conduit, but once
+    // we push an end to the rejected loop we start the countdown, unless we
+    // make that ephemeral. Also, we probably don't want to keep working through
+    // the workload if we get an exception, so we do want to make things as
+    // destroyed. We already have that though. The `_turnstile` loop ending will
+    // trigger destroy, and propagate the error.
+
+    //
+    drain () {
+        this._draining = true
+        this._checkDrain()
+    }
+
+    _checkDrain () {
+        if (this._draining && this.health.occupied == 0) {
+            this._destructible.destroy()
+        }
     }
 
     // Enter work into the queue. Properties of the `envelope` argument can include:
@@ -131,6 +147,7 @@ class Turnstile {
             }
         } finally {
             this.health.occupied--
+            this._checkDrain()
         }
     }
 
