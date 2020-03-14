@@ -26,11 +26,12 @@
     },
     "devDependencies":
     {
-                            "destructible":                 "4.0.x"
+                            "destructible":                 "4.0.x",
+                            "proof":                        "^8.0.0-alpha.1"
     },
     "main":                 "turnstile",
     "scripts":
     {
-                            "test": "mocha test/*.test.js"
+                            "test": "proof test/*.test.js"
     }
 }
