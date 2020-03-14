@@ -1,33 +1,26 @@
-// Control-flow utilities.
-var cadence = require('cadence')
-
 // Return the first not null-like value.
-var coalesce = require('extant')
+const coalesce = require('extant')
 
-// Contextualized callbacks and event handlers.
-var operation = require('operation')
+class Queue {
+    constructor (turnstile, method, object) {
+        this.turnstile = turnstile
+        this._entry = { method, object: coalesce(object) }
+    }
 
-// Do nothing.
-var nop = require('nop')
+    push (value) {
+        this.turnstile.enter({ ...this._entry, body: value })
+    }
 
-function checkpoint (envelope, callback) {  callback() }
-
-function Queue () {
-    var vargs = operation.vargs.apply(operation, arguments)
-    this._operation = vargs.shift()
-    this.turnstile = vargs.shift()
-}
-
-Queue.prototype.push = function (value) {
-    this.turnstile.enter({ method: this._operation, body: value })
-}
-
-Queue.prototype.enqueue = function (value, callback) {
-    this.turnstile.enter({ method: this._operation, completed: callback, body: value })
-}
-
-Queue.prototype.wait = function (callback) {
-    this.turnstile.enter({ method: checkpoint, completed: callback })
+    async enqueue (value, callback) {
+        return new Promise(resolve => {
+            this.turnstile.enter({
+                method: (entry) => {
+                    resolve(this._entry.method.call(this._entry.object, entry))
+                },
+                body: value
+            })
+        })
+    }
 }
 
 module.exports = Queue
