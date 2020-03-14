@@ -74,15 +74,18 @@ class Turnstile {
     //  specified.
 
     //
-    enter (method, body, ...vargs) {
+    enter ({ method, body, when, object }) {
         assert(!this.destroyed, 'already destroyed')
         // Pop and shift variadic arguments.
-        const now = this._Date.now()
-        const when = typeof vargs[vargs.length - 1] == 'number' ? vargs.pop() : now
-        const object = coalesce(vargs.shift())
+        const now = coalesce(when, this._Date.now())
         const task = {
-            method, object, body, when, timesout: when + this.timeout,
-            previous: this._head.previous, next: this._head
+            method: method,
+            object: coalesce(object),
+            body: body,
+            when: now,
+            timesout: now + this.timeout,
+            previous: this._head.previous,
+            next: this._head
         }
         task.next.previous = task
         task.previous.next = task

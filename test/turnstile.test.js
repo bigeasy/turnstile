@@ -18,20 +18,33 @@ async function prove (okay) {
         futures[name].promise = new Promise(resolve => futures[name].resolve = resolve)
     }
     [ 'first', 'second', 'third' ].map(name => addFuture(name))
-    turnstile.enter(async (value, state) => {
-        test.push(state)
-        futures.first.resolve(value)
-        await futures.second.promise
-    }, 'a')
+    turnstile.enter({
+        method: async (value, state) => {
+            test.push(state)
+            futures.first.resolve(value)
+            await futures.second.promise
+        },
+        body: 'a'
+    })
     await new Promise(resolve => setImmediate(resolve))
     // This will reject because it is going to push and then be timed out.
-    turnstile.enter(async function (value, state) {
-        test.push(state)
-    }, 1, { property: 1 }, -3)
-    turnstile.enter(async function (value, state) {
-        test.push(state)
-        futures.third.resolve(this.property + value)
-    }, 1, { property: 1 }, 0)
+    turnstile.enter({
+        method: async function (value, state) {
+            test.push(state)
+        },
+        body: 1,
+        object: { property: 1 },
+        when: -3
+    })
+    turnstile.enter({
+        method: async function (value, state) {
+            test.push(state)
+            futures.third.resolve(this.property + value)
+        },
+        body: 1,
+        object: { property: 1 },
+        when: 0
+    })
     okay(await futures.first.promise, 'a', 'first work')
     futures.second.resolve()
     okay(await futures.third.promise, 2, 'second work')
