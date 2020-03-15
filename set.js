@@ -1,45 +1,30 @@
-var coalesce = require('extant')
-var operation = require('operation')
+const coalesce = require('extant')
 
-function Set () {
-    var vargs = operation.vargs.apply(operation, arguments)
-    this._operation = vargs.shift()
-    this.turnstile = vargs.shift()
-    this._sets = {}
-}
-
-Set.prototype._pop = function (envelope, callback) {
-    delete this._sets[envelope.body]
-    this._operation.call(null, envelope, callback)
-}
-
-Set.prototype._callback = function (key, callback) {
-    if (callback != null) {
-        this._sets[key].callbacks.push(callback)
+class Set {
+    constructor (turnstile, method, object) {
+        this.turnstile = turnstile
+        this._method = method
+        this._object = coalesce(object)
+        this._set = {}
     }
-}
 
-Set.prototype.add = function (key, callback) {
-    var set = this._sets[key]
-    if (set == null) {
-        set = this._sets[key] = {
-            key: key,
-            callbacks: []
-        }
-        this._callback(key, callback)
-        this.turnstile.enter({
-            object: this,
-            method: this._pop,
-            body: key,
-            completed: function () {
-                var vargs = Array.prototype.slice.call(arguments)
-                set.callbacks.forEach(function (callback) {
-                    callback.apply(null, vargs)
+    add (key) {
+        let set = this._set[key]
+        if (set == null) {
+            set = this._set[key] = {
+                key: key,
+                promise: new Promise(resolve => {
+                    this.turnstile.enter({
+                        method: async (entry) => {
+                            delete this._set[key]
+                            resolve(await this._method.call(this._object, entry))
+                        },
+                        body: key
+                    })
                 })
             }
-        })
-    } else {
-        this._callback(key, callback)
+        }
+        return set.promise
     }
 }
 
