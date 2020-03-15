@@ -1,20 +1,21 @@
-var Turnstile = { Set: require('./set') }
-var operation = require('operation')
+const Turnstile = { Set: require('./set') }
 
-function Check () {
-    var vargs = operation.vargs.apply(operation, arguments)
-    this._operation = vargs.shift()
-    this._set = new Turnstile.Set(this, '_check', vargs.shift())
-    this.turnstile = this._set.turnstile
-}
+class Check {
+    constructor (turnstile, method, object) {
+        this._set = new Turnstile.Set(turnstile, async function (entry) {
+            return await method.call(this, {
+                when: entry.when,
+                waited: entry.waited,
+                timedout: entry.timedout,
+                canceled: entry.canceled
+            })
+        }, object)
+        this.turnstile = this._set.turnstile
+    }
 
-Check.prototype._check = function (envelope, callback) {
-    envelope.body = null
-    this._operation(envelope, callback)
-}
-
-Check.prototype.check = function (callback) {
-    this._set.add('check', callback)
+    check (callback) {
+        return this._set.add('check')
+    }
 }
 
 module.exports = Check
