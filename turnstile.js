@@ -35,7 +35,7 @@ class Turnstile {
         // Create a queue of work that has timed out.
         this._rejected = new Avenue
         // Poll the rejectable queue for timed out work.
-        destructible.durable('rejector', this._reject(this._rejected.shifter()))
+        destructible.durable('rejector', this._rejector(this._rejected.shifter()))
         // Mark destroyed on destruct.
         destructible.destruct(() => this.destroyed = true)
         // End reject loop on destruct.
@@ -57,7 +57,12 @@ class Turnstile {
     }
 
     _checkDrain () {
-        if (this._draining && this.health.occupied == 0) {
+        if (
+            this._draining &&
+            this.health.occupied == 0 &&
+            this.health.rejecting == 0 &&
+            this.health.waiting == 0
+        ) {
             this._destructible.destroy()
         }
     }
@@ -105,8 +110,6 @@ class Turnstile {
             const entry = this._head.next
             this._head.next = entry.next
             this._head.next.previous = this._head
-            this.health.waiting--
-            this.health.rejecting++
             this._rejected.push(entry)
         }
     }
@@ -171,20 +174,34 @@ class Turnstile {
     // will call it.
 
     //
-    async _reject (shifter) {
-        for await (const entry of shifter.iterator()) {
-            const now = this._Date.now()
-            try {
+    async _rejector (shifter) {
+        try {
+            this.health.rejecting++
+            for (;;) {
+                let entry = shifter.sync.shift()
+                if (entry == null) {
+                    this.health.rejecting--
+                    this._checkDrain()
+                    entry = await shifter.shift()
+                    this.health.rejecting++
+                }
+                if (entry == null) {
+                    break
+                }
+                this.health.waiting--
+                const now = this._Date.now()
                 await entry.method.call(entry.object, {
                     body: entry.body,
                     when: entry.when,
                     waited: now - entry.when,
-                    timedout: true ,
+                    timedout: true,
                     canceled: true
                 })
-            } finally {
-                this.health.rejecting--
             }
+        } finally {
+            // The only statement that throws above is the worker function call.
+            this.health.rejecting--
+            this._checkDrain()
         }
     }
 }
