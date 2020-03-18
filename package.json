@@ -20,7 +20,7 @@
     },
     "dependencies":
     {
-                            "avenue":                       "0.1.x",
+                            "avenue":                       "0.2.0-alpha.3",
                             "extant":                       "1.0.x",
                             "interrupt":                    "9.0.0-alpha.4",
                             "nop":                          "1.0.0"
