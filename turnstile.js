@@ -7,6 +7,8 @@ const Interrupt = require('interrupt').create('turnstile')
 
 const Avenue = require('avenue')
 
+const noop = require('nop')
+
 // Construct a turnstile.
 //
 // `options`
@@ -40,6 +42,8 @@ class Turnstile {
         destructible.destruct(() => this.destroyed = true)
         // End reject loop on destruct.
         destructible.destruct(() => this._rejected.push(null))
+        this._drain = null
+        this._drained = noop
     }
 
     // We need to destroy explicity. Seems like we want to forgo time timeout
@@ -52,18 +56,25 @@ class Turnstile {
 
     //
     drain () {
-        this._draining = true
+        if (this._drain == null) {
+            this._drain = new Promise(resolve => this._drained = resolve)
+        }
+        const drain = this._drain
         this._checkDrain()
+        return drain
     }
 
     _checkDrain () {
         if (
-            this._draining &&
+            this._drain != null &&
             this.health.occupied == 0 &&
             this.health.rejecting == 0 &&
             this.health.waiting == 0
         ) {
-            this._destructible.destroy()
+            this._drain = null
+            const drained = this._drained
+            this._drained = noop
+            drained.call()
         }
     }
 

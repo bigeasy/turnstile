@@ -49,6 +49,8 @@ async function prove (okay) {
     futures.second.resolve()
     okay(await futures.third.promise, 2, 'second work')
     turnstile.drain()
+    await turnstile.drain()
+    destructible.destroy()
     await destructible.promise
     okay(test, [{
         body: 'a',
