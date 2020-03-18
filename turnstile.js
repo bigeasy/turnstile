@@ -23,7 +23,8 @@ const noop = require('nop')
 //
 class Turnstile {
     constructor (destructible, options = {}) {
-        this.destroyed = false
+        this.canceled = false
+        this.terminated = false
         this._destructible = destructible
         this._instance = 0
         this._head = { timesout: Infinity }
@@ -38,10 +39,6 @@ class Turnstile {
         this._rejected = new Avenue
         // Poll the rejectable queue for timed out work.
         destructible.durable('rejector', this._rejector(this._rejected.shifter()))
-        // Mark destroyed on destruct.
-        destructible.destruct(() => this.destroyed = true)
-        // End reject loop on destruct.
-        destructible.destruct(() => this._rejected.push(null))
         this._drain = null
         this._drained = noop
     }
@@ -62,6 +59,17 @@ class Turnstile {
         const drain = this._drain
         this._checkDrain()
         return drain
+    }
+
+    terminate (cancel = false) {
+        if (!this.terminated) {
+            const drain = this.drain()
+            this.canceled = cancel
+            this._rejected.push(null)
+            this._checkDrain()
+            return drain
+        }
+        return this._drain || Promise.resolve()
     }
 
     _checkDrain () {
@@ -91,7 +99,7 @@ class Turnstile {
 
     //
     enter ({ method, body, when, object }) {
-        assert(!this.destroyed, 'already destroyed')
+        assert(!this.terminated, 'already destroyed')
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
         const task = {
@@ -157,7 +165,7 @@ class Turnstile {
                 // Run the task and mark it as completed if it succeeds.
                 const timedout = entry.timesout <= now
                 const waited = now - entry.when
-                const canceled = this.destroyed || timedout
+                const canceled = this.canceled || timedout
                 await entry.method.call(entry.object, {
                     body: entry.body,
                     when: entry.when,
