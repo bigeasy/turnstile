@@ -1,3 +1,7 @@
+[![Actions Status](https://github.com/bigeasy/turnstile/workflows/Node%20CI/badge.svg)](https://github.com/bigeasy/turnstile/actions)
+[![codecov](https://codecov.io/gh/bigeasy/turnstile/branch/master/graph/badge.svg)](https://codecov.io/gh/bigeasy/turnstile)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Turnstile is part of the [Cadence](https://github.com/bigeasy/cadence) Universe.
 It is a work queue primitive that feeds work into an error first callback. This
 is how I do parallel operations, in an orderly fashion;
