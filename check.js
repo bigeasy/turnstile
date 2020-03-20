@@ -13,8 +13,8 @@ class Check {
         this.turnstile = this._set.turnstile
     }
 
-    check (callback) {
-        return this._set.add('check')
+    check (...vargs) {
+        return this._set.add.apply(this._set, [ 'check' ].concat(vargs))
     }
 }
 

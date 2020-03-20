@@ -7,17 +7,18 @@ class Queue {
         this._entry = { method, object: coalesce(object) }
     }
 
-    push (value) {
-        this.turnstile.enter({ ...this._entry, body: value })
+    push (value, ...vargs) {
+        this.turnstile.enter({ ...this._entry, body: value, vargs })
     }
 
-    enqueue (value) {
+    enqueue (value, ...vargs) {
         return new Promise(resolve => {
             this.turnstile.enter({
                 method: async (entry) => {
                     resolve(await this._entry.method.call(this._entry.object, entry))
                 },
-                body: value
+                body: value,
+                vargs
             })
         })
     }

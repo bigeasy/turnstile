@@ -8,7 +8,7 @@ class Set {
         this._set = {}
     }
 
-    add (key) {
+    add (key, ...vargs) {
         let set = this._set[key]
         if (set == null) {
             set = this._set[key] = {
@@ -19,7 +19,8 @@ class Set {
                             delete this._set[key]
                             resolve(await this._method.call(this._object, entry))
                         },
-                        body: key
+                        body: key,
+                        vargs
                     })
                 })
             }
