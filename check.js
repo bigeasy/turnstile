@@ -7,7 +7,8 @@ class Check {
                 when: entry.when,
                 waited: entry.waited,
                 timedout: entry.timedout,
-                canceled: entry.canceled
+                canceled: entry.canceled,
+                vargs: entry.vargs
             })
         }, object)
         this.turnstile = this._set.turnstile

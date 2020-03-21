@@ -22,12 +22,14 @@ async function prove (okay) {
         when: 0,
         waited: 0,
         timedout: false,
-        canceled: false
+        canceled: false,
+        vargs: []
     }, {
         body: 2,
         when: 0,
         waited: 0,
         timedout: false,
-        canceled: false
+        canceled: false,
+        vargs: []
     }], 'test')
 }

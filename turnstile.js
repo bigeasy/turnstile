@@ -98,7 +98,7 @@ class Turnstile {
     //  specified.
 
     //
-    enter ({ method, body, when, object }) {
+    enter ({ method, body, when, object, vargs = [] }) {
         assert(!this.terminated, 'already destroyed')
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
@@ -108,6 +108,7 @@ class Turnstile {
             body: body,
             when: now,
             timesout: now + this.timeout,
+            vargs: vargs,
             previous: this._head.previous,
             next: this._head
         }
@@ -170,7 +171,8 @@ class Turnstile {
                     body: entry.body,
                     when: entry.when,
                     waited: now - entry.when,
-                    timedout, canceled
+                    timedout, canceled,
+                    vargs: entry.vargs
                 })
             }
         } finally {
@@ -214,7 +216,8 @@ class Turnstile {
                     when: entry.when,
                     waited: now - entry.when,
                     timedout: true,
-                    canceled: true
+                    canceled: true,
+                    vargs: entry.vargs
                 })
             }
         } finally {

@@ -29,6 +29,6 @@ async function prove (okay) {
     const result = await check.check()
     okay(result, 1, 'checked')
     okay(test, [{
-        when: 0, waited: 0, timedout: false, canceled: false
+        when: 0, waited: 0, timedout: false, canceled: false, vargs: []
     }], 'gathered')
 }

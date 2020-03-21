@@ -56,19 +56,22 @@ async function prove (okay) {
             canceled: false,
             timedout: false,
             waited: 0,
-            when: 0
+            when: 0,
+            vargs: []
         }, {
             body: 1,
             canceled: true,
             timedout: true,
             waited: 3,
-            when: -3
+            when: -3,
+            vargs: []
         }, {
             body: 1,
             canceled: false,
             timedout: false,
             waited: 0,
-            when: 0
+            when: 0,
+            vargs: []
         }], 'states')
     } ())
     await destructible.destructed
