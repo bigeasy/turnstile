@@ -43,6 +43,10 @@ class Turnstile {
         this._drained = noop
     }
 
+    get size () {
+        return this.health.occupied + this.health.rejecting + this.health.waiting
+    }
+
     // We need to destroy explicity. Seems like we want to forgo time timeout
     // mechanism, because we did something similar to that in Conduit, but once
     // we push an end to the rejected loop we start the countdown, unless we
@@ -73,12 +77,7 @@ class Turnstile {
     }
 
     _checkDrain () {
-        if (
-            this._drain != null &&
-            this.health.occupied == 0 &&
-            this.health.rejecting == 0 &&
-            this.health.waiting == 0
-        ) {
+        if (this._drain != null && this.size == 0) {
             this._drain = null
             const drained = this._drained
             this._drained = noop
