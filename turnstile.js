@@ -1,11 +1,9 @@
-const assert = require('assert')
 // Return the first not null-like value.
 const coalesce = require('extant')
 
-// Exceptions you can catch by type.
-const Interrupt = require('interrupt').create('turnstile')
+const Queue = require('avenue')
 
-const Avenue = require('avenue')
+const Interrupt = require('interrupt')
 
 const noop = require('nop')
 
@@ -22,6 +20,8 @@ const noop = require('nop')
 
 //
 class Turnstile {
+    static Error = Interrupt.create('Turnstile.Error')
+
     constructor (destructible, options = {}) {
         this.canceled = false
         this.terminated = false
@@ -36,7 +36,7 @@ class Turnstile {
         this.timeout = coalesce(options.timeout, Infinity)
         this._Date = coalesce(options.Date, Date)
         // Create a queue of work that has timed out.
-        this._rejected = new Avenue
+        this._rejected = new Queue
         // Poll the rejectable queue for timed out work.
         destructible.durable('rejector', this._rejector(this._rejected.shifter()))
         this._drain = null
@@ -98,7 +98,7 @@ class Turnstile {
 
     //
     enter ({ method, body, when, object, vargs = [] }) {
-        assert(!this.terminated, 'already destroyed')
+        Turnstile.Error.assert(!this.terminated, 'terminated', { code: 'terminated' })
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
         const task = {
