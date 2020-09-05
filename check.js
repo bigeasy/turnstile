@@ -7,7 +7,7 @@ class Check {
                 when: entry.when,
                 waited: entry.waited,
                 timedout: entry.timedout,
-                canceled: entry.canceled,
+                destroyed: entry.destroyed,
                 vargs: entry.vargs
             })
         }, object)

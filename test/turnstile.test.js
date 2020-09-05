@@ -53,22 +53,22 @@ async function prove (okay) {
         await turnstile.terminate()
         okay(test, [{
             body: 'a',
-            canceled: false,
             timedout: false,
+            destroyed: false,
             waited: 0,
             when: 0,
             vargs: []
         }, {
             body: 1,
-            canceled: true,
             timedout: true,
+            destroyed: false,
             waited: 3,
             when: -3,
             vargs: []
         }, {
             body: 1,
-            canceled: false,
             timedout: false,
+            destroyed: false,
             waited: 0,
             when: 0,
             vargs: []

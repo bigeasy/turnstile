@@ -18,8 +18,8 @@ async function prove (okay) {
     set.add('b')
     okay(await set.add('b'), 'b', 'result')
     okay(test, [{
-        body: 'a', when: 0, waited: 0, timedout: false, canceled: false, vargs: []
+        body: 'a', when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
     }, {
-        body: 'b', when: 0, waited: 0, timedout: false, canceled: false, vargs: []
+        body: 'b', when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
     }], 'gathered')
 }

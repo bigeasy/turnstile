@@ -23,7 +23,6 @@ class Turnstile {
     static Error = Interrupt.create('Turnstile.Error')
 
     constructor (destructible, options = {}) {
-        this.canceled = false
         this.terminated = false
         this._destructible = destructible
         this._instance = 0
@@ -38,24 +37,25 @@ class Turnstile {
         // Create a queue of work that has timed out.
         this._rejected = new Queue
         // Poll the rejectable queue for timed out work.
-        destructible.durable('rejector', this._rejector(this._rejected.shifter()))
         this._drain = null
         this._drained = noop
+        this.destroyed = false
+        this._latches = []
+        destructible.destruct(() => this.destroyed = true)
+        destructible.durable('rejector', this._rejector(this._rejected.shifter()))
+        for (let i = 0; i < this.health.turnstiles; i++) {
+            this._destructible.durable([ 'turnstile', i ], this._turnstile())
+        }
     }
 
+    // Return the total number of entries in the Turnstile, the number of
+    // waiting entries plus any entry being processed or rejected.
+
+    //
     get size () {
         return this.health.occupied + this.health.rejecting + this.health.waiting
     }
 
-    // We need to destroy explicity. Seems like we want to forgo time timeout
-    // mechanism, because we did something similar to that in Conduit, but once
-    // we push an end to the rejected loop we start the countdown, unless we
-    // make that ephemeral. Also, we probably don't want to keep working through
-    // the workload if we get an exception, so we do want to make things as
-    // destroyed. We already have that though. The `_turnstile` loop ending will
-    // trigger destroy, and propagate the error.
-
-    //
     drain () {
         if (this._drain == null) {
             this._drain = new Promise(resolve => this._drained = resolve)
@@ -65,11 +65,26 @@ class Turnstile {
         return drain
     }
 
+    // Like Conduit, when the Destructible destructs, we may not want to shut
+    // down without working through our queue, so in response to Destructible
+    // destruction we simply inform the worker function that we're in a
+    // destroyed state.
+    //
+    // Wondering how to handle the case where we have an exception in one of our
+    // turnstiles. Do we make an effort to shutdown or otherwise notify the
+    // other worker functions that the Turnstile is in an error state? The
+    // problem is that there is a reduced capacity. What happens if there are
+    // many turnstiles, they all crash but one, and we try to shutdown working
+    // through a workload that it will take a long time to handle? Could
+    // conceiable just set a flag that says that the Turnstile is impaired.
+
+    //
     terminate (cancel = false) {
         if (!this.terminated) {
+            this.terminated = true
             const drain = this.drain()
-            this.canceled = cancel
             this._rejected.push(null)
+            this._latches.splice(0).forEach(latch => latch.resolve())
             this._checkDrain()
             return drain
         }
@@ -114,9 +129,8 @@ class Turnstile {
         task.next.previous = task
         task.previous.next = task
         this.health.waiting++
-        if (this.health.occupied < this.health.turnstiles) {
-            const instance = this._instance = (this._instance + 1) & 0xfffffff
-            this._destructible.ephemeral([ 'turnstile', now, instance ], this._turnstile())
+        if (this._latches.length != 0) {
+            this._latches.shift().resolve()
         }
         // We check for rejections on entry assuming that if we've managed to
         // make our work queue a certain length, there is no harm in leaving it
@@ -152,31 +166,43 @@ class Turnstile {
 
     //
     async _turnstile () {
-        try {
-            this.health.occupied++
-            // Work through the work in the queue.
-            while (this.health.waiting != 0) {
-                const now = this._Date.now()
-                // Shift a task off of the work queue.
-                const entry = this._head.next
-                this._head.next = entry.next
-                this._head.next.previous = this._head
-                this.health.waiting--
-                // Run the task and mark it as completed if it succeeds.
-                const timedout = entry.timesout <= now
-                const waited = now - entry.when
-                const canceled = this.canceled || timedout
-                await entry.method.call(entry.object, {
-                    body: entry.body,
-                    when: entry.when,
-                    waited: now - entry.when,
-                    timedout, canceled,
-                    vargs: entry.vargs
-                })
+        for (;;) {
+            if (this.health.waiting == 0) {
+                if (this.terminated) {
+                    break
+                }
+                const latch = { promise: null, resolve: null }
+                latch.promise = new Promise(resolve => latch.resolve = resolve)
+                this._latches.push(latch)
+                await latch.promise
+                continue
             }
-        } finally {
-            this.health.occupied--
-            this._checkDrain()
+            try {
+                this.health.occupied++
+                // Work through the work in the queue.
+                while (this.health.waiting != 0) {
+                    const now = this._Date.now()
+                    // Shift a task off of the work queue.
+                    const entry = this._head.next
+                    this._head.next = entry.next
+                    this._head.next.previous = this._head
+                    this.health.waiting--
+                    // Run the task and mark it as completed if it succeeds.
+                    const timedout = entry.timesout <= now
+                    const waited = now - entry.when
+                    await entry.method.call(entry.object, {
+                        body: entry.body,
+                        when: entry.when,
+                        waited: now - entry.when,
+                        timedout,
+                        destroyed: this.destroyed,
+                        vargs: entry.vargs
+                    })
+                }
+            } finally {
+                this.health.occupied--
+                this._checkDrain()
+            }
         }
     }
 
@@ -215,7 +241,7 @@ class Turnstile {
                     when: entry.when,
                     waited: now - entry.when,
                     timedout: true,
-                    canceled: true,
+                    destroyed: this.destroyed,
                     vargs: entry.vargs
                 })
             }

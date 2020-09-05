@@ -11,7 +11,7 @@ async function prove (okay) {
                 method: 'enter',
                 when: 0,
                 waited: 0,
-                canceled: false,
+                destroyed: false,
                 timedout: false,
                 body: null
             }, 'check')
@@ -29,6 +29,6 @@ async function prove (okay) {
     const result = await check.check()
     okay(result, 1, 'checked')
     okay(test, [{
-        when: 0, waited: 0, timedout: false, canceled: false, vargs: []
+        when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
     }], 'gathered')
 }
