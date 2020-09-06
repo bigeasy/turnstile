@@ -74,5 +74,5 @@ async function prove (okay) {
             vargs: []
         }], 'states')
     } ())
-    await destructible.destructed
+    await destructible.rejected
 }
