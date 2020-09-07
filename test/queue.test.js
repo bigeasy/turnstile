@@ -32,4 +32,7 @@ async function prove (okay) {
         destroyed: false,
         vargs: []
     }], 'test')
+
+    await turnstile.terminate()
+    await destructible.rejected
 }

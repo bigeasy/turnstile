@@ -22,4 +22,7 @@ async function prove (okay) {
     }, {
         body: 'b', when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
     }], 'gathered')
+
+    await turnstile.terminate()
+    await destructible.rejected
 }
