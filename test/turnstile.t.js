@@ -11,7 +11,8 @@ async function prove (okay) {
         Date: { now: () => now },
         timeout: 1
     })
-    destructible.durable('test', async function () {
+    destructible.destruct(() => turnstile.terminate())
+    await destructible.terminal('test', async function () {
         const futures = {}
         function addFuture(name) {
             futures[name] = {}
@@ -50,7 +51,6 @@ async function prove (okay) {
         okay(await futures.third.promise, 2, 'second work')
         turnstile.drain()
         await turnstile.drain()
-        await turnstile.terminate()
         okay(test, [{
             body: 'a',
             timedout: false,

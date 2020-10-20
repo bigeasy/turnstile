@@ -9,6 +9,7 @@ async function prove (okay) {
 
     const destructible = new Destructible('t/queue.t')
     const turnstile = new Turnstile(destructible, { Date: { now: () => 0 } })
+    destructible.destruct(() => turnstile.terminate())
     const queue = new Turnstile.Queue(turnstile, function (entry) {
         test.push(entry)
         return entry.body
@@ -33,6 +34,5 @@ async function prove (okay) {
         vargs: []
     }], 'test')
 
-    await turnstile.terminate()
-    await destructible.rejected
+    await destructible.destroy().rejected
 }
