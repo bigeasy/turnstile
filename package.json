@@ -22,7 +22,7 @@
     {
                             "avenue":                       "^0.4.0",
                             "extant":                       "^1.0.20",
-                            "interrupt":                    "^10.1.0",
+                            "interrupt":                    "11.0.0-alpha.1",
                             "nop":                          "1.0.0"
     },
     "devDependencies":
