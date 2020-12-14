@@ -21,7 +21,7 @@ const noop = require('nop')
 //
 class Turnstile {
     static Error = Interrupt.create('Turnstile.Error', {
-        terminated: 'attempted to enqueue new work into a terminated turnstile'
+        TERMINATED: 'attempted to enqueue new work into a terminated turnstile'
     })
 
     constructor (destructible, options = {}) {
