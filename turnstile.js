@@ -26,7 +26,6 @@ class Turnstile {
 
     constructor (destructible, options = {}) {
         this.terminated = false
-        this._destructible = destructible
         this._instance = 0
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
@@ -44,9 +43,9 @@ class Turnstile {
         this.destroyed = false
         this._latches = []
         destructible.destruct(() => this.destroyed = true)
-        destructible.durable('rejector', this._rejector(this._rejected.shifter()))
+        destructible.durable($ => $(), 'rejector', this._rejector(this._rejected.shifter()))
         for (let i = 0; i < this.health.turnstiles; i++) {
-            this._destructible.durable([ 'turnstile', i ], this._turnstile())
+            destructible.durable($ => $(), [ 'turnstile', i ], this._turnstile())
         }
     }
 
