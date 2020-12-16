@@ -33,6 +33,9 @@ class Turnstile {
 
     constructor (destructible, options = {}) {
         this.terminated = false
+        this._destructible = destructible
+        this.destructible = destructible.durable($ => $(), 'turnstile')
+        this.destructible.increment()
         this._instance = 0
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
@@ -48,26 +51,30 @@ class Turnstile {
         this._drain = null
         this._drained = noop
         this.destroyed = false
+        this.terminated = false
         this._latches = []
         this._errors = []
-        destructible.destruct(() => {
+        this._destructible.destruct(() => {
             this.destroyed = true
+            this.destructible.decrement()
+        })
+        this.destructible.destruct(() => {
+            this.terminated = true
             while (this._latches.length != 0) {
                 this._latches.shift().resolve.call()
             }
             this._reject.resolve.call()
-            destructible.ephemeral($ => $(), 'shutdown', async () => {
+            this.destructible.ephemeral($ => $(), 'shutdown', async () => {
                 await this.drain()
                 if (this._errors.length != 0) {
                     throw new Turnstile.Error('ERRORED', this._errors, { ...this.health }, 1)
                 }
             })
         })
-        destructible.durable($ => $(), 'rejector', this._turnstile(true))
+        this.destructible.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
-            destructible.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
+            this.destructible.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
         }
-        this._destructible = destructible
     }
     //
 
@@ -89,6 +96,7 @@ class Turnstile {
     dequeue (entry) {
         Turnstile.Error.assert(entry.type === Turnstile.ENTRY, 'INVALID_ARGUMENT')
         if (!entry.unlinked) {
+            this.health.waiting--
             this._unlink(entry)
             return true
         }
@@ -135,6 +143,7 @@ class Turnstile {
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
         const entry = {
+            type: Turnstile.ENTRY,
             unlinked: false,
             trace: trace,
             work: work,
@@ -227,10 +236,12 @@ class Turnstile {
                         destroyed: this.destroyed,
                         canceled: timedout || this.destroyed,
                     }
+                    console.log(entry)
                     await entry.worker.call(entry.object, work)
                 }
             } catch (error) {
                 // Gather any errors and shutdown.
+                console.log(error.stack)
                 this._errors.push(new Turnstile.Error({ $trace: entry.trace }, 'CAUGHT', [ error ], 1))
                 this._destructible.destroy()
             } finally {
