@@ -134,7 +134,8 @@ class Turnstile {
         Turnstile.Error.assert(!this.destroyed, 'DESTROYED')
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
-        const task = {
+        const entry = {
+            unlinked: false,
             trace: trace,
             work: work,
             worker: worker,
@@ -144,8 +145,8 @@ class Turnstile {
             previous: this._head.previous,
             next: this._head
         }
-        task.next.previous = task
-        task.previous.next = task
+        entry.next.previous = entry
+        entry.previous.next = entry
         this.health.waiting++
         if (this._latches.length != 0) {
             this._latches.shift().resolve()
@@ -157,6 +158,7 @@ class Turnstile {
         if (now < this._head.next.timesout) {
             this._reject.resolve.call()
         }
+        return entry
     }
 
     // Perform work.
