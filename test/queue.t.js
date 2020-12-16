@@ -9,29 +9,28 @@ async function prove (okay) {
 
     const destructible = new Destructible('t/queue.t')
     const turnstile = new Turnstile(destructible, { Date: { now: () => 0 } })
-    destructible.destruct(() => turnstile.terminate())
     const queue = new Turnstile.Queue(turnstile, function (entry) {
         test.push(entry)
-        return entry.body
+        return entry.value
     })
 
     queue.push(1)
     const result = await queue.enqueue(2)
     okay(result, 2, 'returned')
     okay(test, [{
-        body: 1,
+        value: 1,
         when: 0,
         waited: 0,
         timedout: false,
         destroyed: false,
-        vargs: []
+        canceled: false
     }, {
-        body: 2,
+        value: 2,
         when: 0,
         waited: 0,
         timedout: false,
         destroyed: false,
-        vargs: []
+        canceled: false
     }], 'test')
 
     await destructible.destroy().rejected

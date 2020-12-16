@@ -14,13 +14,9 @@ class Set {
             set = this._set.set(key, {
                 key: key,
                 promise: new Promise(resolve => {
-                    this.turnstile.enter({
-                        method: async entry => {
-                            this._set.delete(key)
-                            resolve(await this._method.call(this._object, entry))
-                        },
-                        body: key,
-                        vargs
+                    this.turnstile.enter({ key }, async entry => {
+                        this._set.delete(key)
+                        resolve(await this._method.call(this._object, entry))
                     })
                 })
             })

@@ -9,19 +9,18 @@ async function prove (okay) {
 
     const destructible = new Destructible('t/set.t')
     const turnstile = new Turnstile(destructible, { Date: { now: () => { return 0 } } })
-    destructible.destruct(() => turnstile.terminate())
     const set = new Turnstile.Set(turnstile, async (entry) => {
         test.push(entry)
-        return entry.body
+        return entry.key
     })
 
     set.add('a')
     set.add('b')
     okay(await set.add('b'), 'b', 'result')
     okay(test, [{
-        body: 'a', when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
+        key: 'a', when: 0, waited: 0, timedout: false, destroyed: false, canceled: false
     }, {
-        body: 'b', when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
+        key: 'b', when: 0, waited: 0, timedout: false, destroyed: false, canceled: false
     }], 'gathered')
 
     await destructible.destroy().rejected

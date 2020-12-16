@@ -1,8 +1,6 @@
 // Return the first not null-like value.
 const coalesce = require('extant')
 
-const Queue = require('avenue')
-
 const Interrupt = require('interrupt')
 
 const noop = require('nop')
@@ -11,8 +9,7 @@ const noop = require('nop')
 //
 // `options`
 //
-//  * `turnstiles` ~ number of concurrent invocations of the worker
-//  function.
+//  * `strands` ~ number of concurrent invocations of the worker function.
 //  * `timeout` ~ time in millisecond before marking a task as timedout and
 //  invoking the worker function for task cancelation.
 //  * `Date` ~ provide a dummy date implementation, useful for unit testing
@@ -21,7 +18,9 @@ const noop = require('nop')
 //
 class Turnstile {
     static Error = Interrupt.create('Turnstile.Error', {
-        TERMINATED: 'attempted to enqueue new work into a terminated turnstile'
+        DESTROYED: 'attempted to enqueue new work into a terminated turnstile',
+        ERRORED: 'errors encountered while running turnstile',
+        CAUGHT: 'errors encountered while running turnstile'
     })
 
     constructor (destructible, options = {}) {
@@ -31,23 +30,38 @@ class Turnstile {
         this._head.next = this._head.previous = this._head
         this.health = {
             occupied: 0, waiting: 0, rejecting: 0,
-            turnstiles: coalesce(options.turnstiles, 1)
+            strands: coalesce(options.strands, 1)
         }
         this.timeout = coalesce(options.timeout, Infinity)
         this._Date = coalesce(options.Date, Date)
         // Create a queue of work that has timed out.
-        this._rejected = new Queue
+        this._reject = { promise: null, resolve: noop }
         // Poll the rejectable queue for timed out work.
         this._drain = null
         this._drained = noop
         this.destroyed = false
         this._latches = []
-        destructible.destruct(() => this.destroyed = true)
-        destructible.durable($ => $(), 'rejector', this._rejector(this._rejected.shifter()))
-        for (let i = 0; i < this.health.turnstiles; i++) {
-            destructible.durable($ => $(), [ 'turnstile', i ], this._turnstile())
+        this._errors = []
+        destructible.destruct(() => {
+            this.destroyed = true
+            while (this._latches.length != 0) {
+                this._latches.shift().resolve.call()
+            }
+            this._reject.resolve.call()
+            destructible.ephemeral($ => $(), 'shutdown', async () => {
+                await this.drain()
+                if (this._errors.length != 0) {
+                    throw new Turnstile.Error('ERRORED', this._errors, { ...this.health }, 1)
+                }
+            })
+        })
+        destructible.durable($ => $(), 'rejector', this._turnstile(true))
+        for (let i = 0; i < this.health.strands; i++) {
+            destructible.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
         }
+        this._destructible = destructible
     }
+    //
 
     // Return the total number of entries in the Turnstile, the number of
     // waiting entries plus any entry being processed or rejected.
@@ -64,32 +78,6 @@ class Turnstile {
         const drain = this._drain
         this._checkDrain()
         return drain
-    }
-
-    // Like Conduit, when the Destructible destructs, we may not want to shut
-    // down without working through our queue, so in response to Destructible
-    // destruction we simply inform the worker function that we're in a
-    // destroyed state.
-    //
-    // Wondering how to handle the case where we have an exception in one of our
-    // turnstiles. Do we make an effort to shutdown or otherwise notify the
-    // other worker functions that the Turnstile is in an error state? The
-    // problem is that there is a reduced capacity. What happens if there are
-    // many turnstiles, they all crash but one, and we try to shutdown working
-    // through a workload that it will take a long time to handle? Could
-    // conceiable just set a flag that says that the Turnstile is impaired.
-
-    //
-    terminate (cancel = false) {
-        if (!this.terminated) {
-            this.terminated = true
-            const drain = this.drain()
-            this._rejected.push(null)
-            this._latches.splice(0).forEach(latch => latch.resolve())
-            this._checkDrain()
-            return drain
-        }
-        return this._drain || Promise.resolve()
     }
 
     _checkDrain () {
@@ -113,17 +101,22 @@ class Turnstile {
     //  specified.
 
     //
-    enter ({ method, body, when, object, vargs = [] }) {
-        Turnstile.Error.assert(!this.terminated, 'terminated', { code: 'terminated' })
+    enter (...vargs) {
+        const trace = typeof vargs[0] == 'function' ? vargs.shift() : null
+        const when = typeof vargs[0] == 'number' ? vargs.shift() : this._Date.now()
+        const work = vargs.shift()
+        const worker = vargs.shift()
+        const object = coalesce(vargs.shift())
+        Turnstile.Error.assert(!this.destroyed, 'DESTROYED')
         // Pop and shift variadic arguments.
         const now = coalesce(when, this._Date.now())
         const task = {
-            method: method,
+            trace: trace,
+            work: work,
+            worker: worker,
             object: coalesce(object),
-            body: body,
-            when: now,
+            when: when,
             timesout: now + this.timeout,
-            vargs: vargs,
             previous: this._head.previous,
             next: this._head
         }
@@ -137,14 +130,8 @@ class Turnstile {
         // make our work queue a certain length, there is no harm in leaving it
         // that length for however long it takes for us to detect that it is
         // stuggling. We just won't grow it when messages are timing out.
-        for (;;) {
-            if (now < this._head.next.timesout) {
-                break
-            }
-            const entry = this._head.next
-            this._head.next = entry.next
-            this._head.next.previous = this._head
-            this._rejected.push(entry)
+        if (now < this._head.next.timesout) {
+            this._reject.resolve.call()
         }
     }
 
@@ -166,90 +153,69 @@ class Turnstile {
     // record it and report it as so as we're done destroying ourselves.
 
     //
-    async _turnstile () {
+    async _turnstile (rejector) {
         for (;;) {
-            if (this.health.waiting == 0) {
-                if (this.terminated) {
+            if (
+                this.health.waiting == 0 ||
+                (
+                    rejector &&
+                    this._Date.now() > this._head.next.timesout
+                )
+            ) {
+                if (this.destroyed) {
                     break
                 }
-                const latch = { promise: null, resolve: null }
-                latch.promise = new Promise(resolve => latch.resolve = resolve)
-                this._latches.push(latch)
+                let capture
+                const latch = { promise: new Promise(resolve => capture = { resolve }), ...capture }
+                if (rejector) {
+                    this._reject = latch
+                } else {
+                    this._latches.push(latch)
+                }
                 await latch.promise
                 continue
             }
+            let entry
             try {
-                this.health.occupied++
+                if (rejector) {
+                    this.health.rejecting++
+                } else {
+                    this.health.occupied++
+                }
                 // Work through the work in the queue.
                 while (this.health.waiting != 0) {
                     const now = this._Date.now()
                     // Shift a task off of the work queue.
-                    const entry = this._head.next
+                    entry = this._head.next
                     this._head.next = entry.next
                     this._head.next.previous = this._head
                     this.health.waiting--
                     // Run the task and mark it as completed if it succeeds.
+                    entry.next = entry.previous = null
                     const timedout = entry.timesout <= now
                     const waited = now - entry.when
-                    await entry.method.call(entry.object, {
-                        body: entry.body,
+                    const work = {
+                        ...entry.work,
                         when: entry.when,
                         waited: now - entry.when,
                         timedout,
                         destroyed: this.destroyed,
-                        vargs: entry.vargs
-                    })
+                        canceled: timedout || this.destroyed,
+                    }
+                    await entry.worker.call(entry.object, work)
                 }
+            } catch (error) {
+                // Gather any errors and shutdown.
+                this._errors.push(new Turnstile.Error({ $trace: entry.trace }, 'CAUGHT', [ error ], 1))
+                this._destructible.destroy()
             } finally {
-                this.health.occupied--
+                if (rejector) {
+                    this.health.rejecting--
+                } else {
+                    this.health.occupied--
+                }
                 this._checkDrain()
             }
-        }
-    }
-
-    // `fracture._reject(shifter)` &mdash; invoke worker function with a timed
-    // out state.
-    //
-    //  * `shifter` &mdash; shifter for rejected queue.
-    //
-    // When we call this function, we've already asserted that the entry in
-    // question has expired, so do not repeat the test.
-    //
-    // Tempted to optimize the loop with an internal synchronous peek of the
-    // shifter, but this is not the critical path of this class, and we ought to
-    // be happy to have the relief it provides in those times of crisis when we
-    // will call it.
-
-    //
-    async _rejector (shifter) {
-        try {
-            this.health.rejecting++
-            for (;;) {
-                let entry = shifter.sync.shift()
-                if (entry == null) {
-                    this.health.rejecting--
-                    this._checkDrain()
-                    entry = await shifter.shift()
-                    this.health.rejecting++
-                }
-                if (entry == null) {
-                    break
-                }
-                this.health.waiting--
-                const now = this._Date.now()
-                await entry.method.call(entry.object, {
-                    body: entry.body,
-                    when: entry.when,
-                    waited: now - entry.when,
-                    timedout: true,
-                    destroyed: this.destroyed,
-                    vargs: entry.vargs
-                })
-            }
-        } finally {
-            // The only statement that throws above is the worker function call.
-            this.health.rejecting--
-            this._checkDrain()
         }
     }
 }

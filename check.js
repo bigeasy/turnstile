@@ -8,7 +8,7 @@ class Check {
                 waited: entry.waited,
                 timedout: entry.timedout,
                 destroyed: entry.destroyed,
-                vargs: entry.vargs
+                canceled: entry.canceled
             })
         }, object)
         this.turnstile = this._set.turnstile

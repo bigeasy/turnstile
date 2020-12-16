@@ -4,7 +4,7 @@ async function prove (okay) {
     const Destructible = require('destructible')
     const Turnstile = require('..')
     Turnstile.Check = require('../check')
-    var object = {
+    const object = {
         method: function (envelope, callback) {
             okay(envelope, {
                 module: 'turnstile',
@@ -21,7 +21,6 @@ async function prove (okay) {
     const test = []
     const destructible = new Destructible('t/set.t')
     const turnstile = new Turnstile(destructible, { Date: { now: () => 0 } })
-    destructible.destruct(() => turnstile.terminate())
     const check = new Turnstile.Check(turnstile, async (entry) => {
         test.push(entry)
         return 1
@@ -30,7 +29,7 @@ async function prove (okay) {
     const result = await check.check()
     okay(result, 1, 'checked')
     okay(test, [{
-        when: 0, waited: 0, timedout: false, destroyed: false, vargs: []
+        when: 0, waited: 0, timedout: false, destroyed: false, canceled: false
     }], 'gathered')
     await destructible.destroy().rejected
 }
