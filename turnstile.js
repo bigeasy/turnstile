@@ -20,7 +20,15 @@ class Turnstile {
     static Error = Interrupt.create('Turnstile.Error', {
         DESTROYED: 'attempted to enqueue new work into a terminated turnstile',
         ERRORED: 'errors encountered while running turnstile',
-        CAUGHT: 'errors encountered while running turnstile'
+        CAUGHT: 'errors encountered while running turnstile',
+        INVALID_ARGUMENT: 'dequeue argument is not a Turnstile entry'
+    })
+
+    static ENTRY = Symbol('ENTRY')
+
+    static NULL_ENTRY = Object.defineProperties({}, {
+        type: { value: Turnstile.ENTRY, enumerable: true, writable: false, configurable: false },
+        unlinked: { value: true, enumerable: true, writable: false, configurable: false }
     })
 
     constructor (destructible, options = {}) {
@@ -69,6 +77,22 @@ class Turnstile {
     //
     get size () {
         return this.health.occupied + this.health.rejecting + this.health.waiting
+    }
+
+    _unlink (entry) {
+        entry.previous.next = entry.next
+        entry.next.previous = entry.previous
+        entry.next = entry.previous = null
+        entry.unlinked = true
+    }
+
+    dequeue (entry) {
+        Turnstile.Error.assert(entry.type === Turnstile.ENTRY, 'INVALID_ARGUMENT')
+        if (!entry.unlinked) {
+            this._unlink(entry)
+            return true
+        }
+        return false
     }
 
     drain () {
@@ -187,8 +211,7 @@ class Turnstile {
                     const now = this._Date.now()
                     // Shift a task off of the work queue.
                     entry = this._head.next
-                    this._head.next = entry.next
-                    this._head.next.previous = this._head
+                    this._unlink(entry)
                     this.health.waiting--
                     // Run the task and mark it as completed if it succeeds.
                     entry.next = entry.previous = null
