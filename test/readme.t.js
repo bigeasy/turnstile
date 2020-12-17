@@ -1,4 +1,4 @@
-require('proof')(2, prove)
+require('proof')(3, prove)
 
 async function prove (okay) {
     const Destructible = require('destructible')
@@ -104,68 +104,54 @@ async function prove (okay) {
             console.log(error.stack)
         }
     }
-    return
-    await destructible.terminal('test', async function () {
-        const futures = {}
-        function addFuture(name) {
-            futures[name] = {}
-            futures[name].promise = new Promise(resolve => futures[name].resolve = resolve)
+
+    {
+        const destructible = new Destructible($ => $(), 'test/turnstile.t')
+        await destructible.terminal($ => $(), 'run and timeout', async function () {
+            let now = 0
+            const test = []
+            const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
+            const countdown = turnstile.countdown($ => $(), 'countdown')
+            turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
+                test.push(value)
+            })
+            await turnstile.drain()
+            turnstile.destructible.destroy()
+            turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
+                test.push(value)
+            })
+            await turnstile.drain()
+            countdown.decrement()
+            okay(test, [ 'a', 'b' ], 'countdown')
+        })
+        try {
+            await destructible.rejected
+        } catch (error) {
+            console.log(error.stack)
         }
-        [ 'first', 'second', 'third' ].map(name => addFuture(name))
-        turnstile.enter({
-            method: async (entry) => {
-                test.push(entry)
-                futures.first.resolve(entry.body)
-                await futures.second.promise
-            },
-            body: 'a'
+    }
+
+    {
+        const destructible = new Destructible($ => $(), 'test/turnstile.t')
+        await destructible.terminal($ => $(), 'run and timeout', async function () {
+            let now = 0
+            const test = []
+            const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
+            const entry = turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
+                test.push(value)
+            })
+            turnstile.unqueue(entry)
+            await turnstile.drain()
+            turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
+                test.push(value)
+            })
+            await turnstile.drain()
+            okay(test, [ 'b' ], 'unqueue')
         })
-        await new Promise(resolve => setImmediate(resolve))
-        // This will reject because it is going to push and then be timed out.
-        turnstile.enter({
-            method: async function (entry) {
-                test.push(entry)
-            },
-            body: 1,
-            object: { property: 1 },
-            when: -3
-        })
-        turnstile.enter({
-            method: async function (entry) {
-                test.push(entry)
-                futures.third.resolve(this.property + entry.body)
-            },
-            body: 1,
-            object: { property: 1 },
-            when: 0
-        })
-        okay(await futures.first.promise, 'a', 'first work')
-        futures.second.resolve()
-        okay(await futures.third.promise, 2, 'second work')
-        turnstile.drain()
-        await turnstile.drain()
-        okay(test, [{
-            body: 'a',
-            timedout: false,
-            destroyed: false,
-            waited: 0,
-            when: 0,
-            vargs: []
-        }, {
-            body: 1,
-            timedout: true,
-            destroyed: false,
-            waited: 3,
-            when: -3,
-            vargs: []
-        }, {
-            body: 1,
-            timedout: false,
-            destroyed: false,
-            waited: 0,
-            when: 0,
-            vargs: []
-        }], 'states')
-    } ())
-    await destructible.rejected
+        try {
+            await destructible.rejected
+        } catch (error) {
+            console.log(error.stack)
+        }
+    }
 }
