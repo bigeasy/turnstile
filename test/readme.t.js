@@ -1,4 +1,4 @@
-require('proof')(3, prove)
+require('proof')(5, prove)
 
 async function prove (okay) {
     const Destructible = require('destructible')
@@ -96,7 +96,6 @@ async function prove (okay) {
                 test.push({ value, destroyed })
             })
             await turnstile.drain()
-            console.log(test)
         })
         try {
             await destructible.rejected
@@ -122,13 +121,17 @@ async function prove (okay) {
             })
             await turnstile.drain()
             countdown.decrement()
+            try {
+                console.log('ENTERING', turnstile.terminated)
+                turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {
+                    test.push(value)
+                })
+            } catch (error) {
+                okay(error.symbol, Destructible.Error.DESTROYED, 'turnstile was destroyed')
+            }
             okay(test, [ 'a', 'b' ], 'countdown')
         })
-        try {
-            await destructible.rejected
-        } catch (error) {
-            console.log(error.stack)
-        }
+        await destructible.rejected
     }
 
     {
@@ -148,10 +151,6 @@ async function prove (okay) {
             await turnstile.drain()
             okay(test, [ 'b' ], 'unqueue')
         })
-        try {
-            await destructible.rejected
-        } catch (error) {
-            console.log(error.stack)
-        }
+        await destructible.rejected
     }
 }

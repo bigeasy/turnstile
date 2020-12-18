@@ -5,6 +5,8 @@ const Interrupt = require('interrupt')
 
 const noop = require('nop')
 
+const Destructible = require('destructible')
+
 // Construct a turnstile.
 //
 // `options`
@@ -34,12 +36,12 @@ class Turnstile {
     static Countdown = class {
         constructor (turnstile, vargs) {
             this.turnstile = turnstile
-            this.destructible = this.destructible.durable.apply(this.destructible, vargs)
-            this.destructible._countdown.increment()
+            this.destructible = turnstile.destructible.durable.apply(turnstile.destructible, vargs)
+            this.turnstile._countdown.increment()
         }
 
         decrement () {
-            this.destructible._countdown.decrement()
+            this.turnstile._countdown.decrement()
         }
     }
 
@@ -71,6 +73,7 @@ class Turnstile {
             this._countdown.decrement()
         })
         this._countdown.destruct(() => {
+            console.log('DESTROYED')
             this.terminated = true
             while (this._latches.length != 0) {
                 this._latches.shift().resolve.call()
@@ -150,7 +153,7 @@ class Turnstile {
 
     //
     enter (...vargs) {
-        Turnstile.Error.assert(!this.terminated, 'TERMINATED')
+        Destructible.Error.assert(!this.terminated, 'DESTROYED')
         const trace = typeof vargs[0] == 'function' ? vargs.shift() : null
         const when = typeof vargs[0] == 'number' ? vargs.shift() : this._Date.now()
         const work = vargs.shift()
