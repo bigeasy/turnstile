@@ -25,11 +25,6 @@
                 </a>
 
 
-                <a class="source" href="drain.js.html">
-                  drain.js
-                </a>
-
-
                 <a class="source" href="queue.js.html">
                   queue.js
                 </a>
@@ -37,6 +32,11 @@
 
                 <a class="source" href="set.js.html">
                   set.js
+                </a>
+
+
+                <a class="source" href="readme.t.js.html">
+                  readme.t.js
                 </a>
 
 
@@ -68,48 +68,30 @@
 
             </div>
 
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">'extant'</span>)
-<span class="hljs-keyword">var</span> Operation = <span class="hljs-built_in">require</span>(<span class="hljs-string">'operation'</span>)
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">const</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;extant&#x27;</span>)
 
-<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Set</span> (<span class="hljs-params"></span>) </span>{
-    <span class="hljs-keyword">var</span> vargs = <span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>)
-    <span class="hljs-keyword">this</span>._operation = Operation(vargs)
-    <span class="hljs-keyword">this</span>._sets = {}
-    <span class="hljs-keyword">this</span>.turnstile = vargs.shift()
-}
-
-<span class="hljs-built_in">Set</span>.prototype._pop = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">envelope, callback</span>) </span>{
-    <span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>._sets[envelope.body]
-    <span class="hljs-keyword">this</span>._operation.call(<span class="hljs-literal">null</span>, envelope, callback)
-}
-
-<span class="hljs-built_in">Set</span>.prototype._callback = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">key, callback</span>) </span>{
-    <span class="hljs-keyword">if</span> (callback != <span class="hljs-literal">null</span>) {
-        <span class="hljs-keyword">this</span>._sets[key].callbacks.push(callback)
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Set</span> </span>{
+    <span class="hljs-title">constructor</span> (<span class="hljs-params">turnstile, method, object</span>) {
+        <span class="hljs-built_in">this</span>.turnstile = turnstile
+        <span class="hljs-built_in">this</span>._method = method
+        <span class="hljs-built_in">this</span>._object = coalesce(object)
+        <span class="hljs-built_in">this</span>._set = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>
     }
-}
 
-<span class="hljs-built_in">Set</span>.prototype.add = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">key, callback</span>) </span>{
-    <span class="hljs-keyword">var</span> set = <span class="hljs-keyword">this</span>._sets[key]
-    <span class="hljs-keyword">if</span> (set == <span class="hljs-literal">null</span>) {
-        set = <span class="hljs-keyword">this</span>._sets[key] = {
-            <span class="hljs-attr">key</span>: key,
-            <span class="hljs-attr">callbacks</span>: []
-        }
-        <span class="hljs-keyword">this</span>._callback(key, callback)
-        <span class="hljs-keyword">this</span>.turnstile.enter({
-            <span class="hljs-attr">object</span>: <span class="hljs-keyword">this</span>,
-            <span class="hljs-attr">method</span>: <span class="hljs-keyword">this</span>._pop,
-            <span class="hljs-attr">body</span>: key,
-            <span class="hljs-attr">completed</span>: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-                <span class="hljs-keyword">var</span> vargs = <span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>)
-                set.callbacks.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">callback</span>) </span>{
-                    callback.apply(<span class="hljs-literal">null</span>, vargs)
+    add (key, ...vargs) {
+        <span class="hljs-keyword">let</span> set = <span class="hljs-built_in">this</span>._set.get(key)
+        <span class="hljs-keyword">if</span> (set == <span class="hljs-literal">null</span>) {
+            set = <span class="hljs-built_in">this</span>._set.set(key, {
+                <span class="hljs-attr">key</span>: key,
+                <span class="hljs-attr">promise</span>: <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">resolve</span> =&gt;</span> {
+                    <span class="hljs-built_in">this</span>.turnstile.enter({ key }, <span class="hljs-keyword">async</span> entry =&gt; {
+                        <span class="hljs-built_in">this</span>._set.delete(key)
+                        resolve(<span class="hljs-keyword">await</span> <span class="hljs-built_in">this</span>._method.call(<span class="hljs-built_in">this</span>._object, entry))
+                    })
                 })
-            }
-        })
-    } <span class="hljs-keyword">else</span> {
-        <span class="hljs-keyword">this</span>._callback(key, callback)
+            })
+        }
+        <span class="hljs-keyword">return</span> set.promise
     }
 }
 

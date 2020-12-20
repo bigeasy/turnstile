@@ -25,11 +25,6 @@
                 </a>
 
 
-                <a class="source" href="drain.js.html">
-                  drain.js
-                </a>
-
-
                 <a class="source" href="queue.js.html">
                   queue.js
                 </a>
@@ -37,6 +32,11 @@
 
                 <a class="source" href="set.js.html">
                   set.js
+                </a>
+
+
+                <a class="source" href="readme.t.js.html">
+                  readme.t.js
                 </a>
 
 
@@ -65,75 +65,30 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-1">&#182;</a>
               </div>
-              <p>Control-flow utilities.</p>
-
-            </div>
-
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> cadence = <span class="hljs-built_in">require</span>(<span class="hljs-string">'cadence'</span>)</pre></div></div>
-
-        </li>
-
-
-        <li id="section-2">
-            <div class="annotation">
-
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-2">&#182;</a>
-              </div>
               <p>Return the first not null-like value.</p>
 
             </div>
 
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">'extant'</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">const</span> coalesce = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;extant&#x27;</span>)
 
-        </li>
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Queue</span> </span>{
+    <span class="hljs-title">constructor</span> (<span class="hljs-params">turnstile, method, object</span>) {
+        <span class="hljs-built_in">this</span>.turnstile = turnstile
+        <span class="hljs-built_in">this</span>._method = method
+        <span class="hljs-built_in">this</span>._object = coalesce(object)
+    }
 
+    push (value, ...vargs) {
+        <span class="hljs-built_in">this</span>.turnstile.enter($ =&gt; $(), { value }, <span class="hljs-built_in">this</span>._method, <span class="hljs-built_in">this</span>._object)
+    }
 
-        <li id="section-3">
-            <div class="annotation">
-
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-3">&#182;</a>
-              </div>
-              <p>Contextualized callbacks and event handlers.</p>
-
-            </div>
-
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> Operation = <span class="hljs-built_in">require</span>(<span class="hljs-string">'operation'</span>)</pre></div></div>
-
-        </li>
-
-
-        <li id="section-4">
-            <div class="annotation">
-
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-4">&#182;</a>
-              </div>
-              <p>Do nothing.</p>
-
-            </div>
-
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> nop = <span class="hljs-built_in">require</span>(<span class="hljs-string">'nop'</span>)
-
-<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkpoint</span> (<span class="hljs-params">envelope, callback</span>) </span>{  callback() }
-
-<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Queue</span> (<span class="hljs-params"></span>) </span>{
-    <span class="hljs-keyword">var</span> vargs = <span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>)
-    <span class="hljs-keyword">this</span>._operation = Operation(vargs)
-    <span class="hljs-keyword">this</span>.turnstile = vargs.shift()
-}
-
-Queue.prototype.push = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">value</span>) </span>{
-    <span class="hljs-keyword">this</span>.turnstile.enter({ <span class="hljs-attr">method</span>: <span class="hljs-keyword">this</span>._operation, <span class="hljs-attr">body</span>: value })
-}
-
-Queue.prototype.enqueue = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">value, callback</span>) </span>{
-    <span class="hljs-keyword">this</span>.turnstile.enter({ <span class="hljs-attr">method</span>: <span class="hljs-keyword">this</span>._operation, <span class="hljs-attr">completed</span>: callback, <span class="hljs-attr">body</span>: value })
-}
-
-Queue.prototype.wait = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">callback</span>) </span>{
-    <span class="hljs-keyword">this</span>.turnstile.enter({ <span class="hljs-attr">method</span>: checkpoint, <span class="hljs-attr">completed</span>: callback })
+    enqueue (value, ...vargs) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">resolve</span> =&gt;</span> {
+            <span class="hljs-built_in">this</span>.turnstile.enter($ =&gt; $(), { value }, <span class="hljs-keyword">async</span> entry =&gt; {
+                    resolve(<span class="hljs-keyword">await</span> <span class="hljs-built_in">this</span>._method.call(<span class="hljs-built_in">this</span>._object, entry))
+            })
+        })
+    }
 }
 
 <span class="hljs-built_in">module</span>.exports = Queue</pre></div></div>

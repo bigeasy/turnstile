@@ -25,11 +25,6 @@
                 </a>
 
 
-                <a class="source" href="drain.js.html">
-                  drain.js
-                </a>
-
-
                 <a class="source" href="queue.js.html">
                   queue.js
                 </a>
@@ -37,6 +32,11 @@
 
                 <a class="source" href="set.js.html">
                   set.js
+                </a>
+
+
+                <a class="source" href="readme.t.js.html">
+                  readme.t.js
                 </a>
 
 
@@ -68,23 +68,25 @@
 
             </div>
 
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">var</span> Turnstile = { <span class="hljs-attr">Set</span>: <span class="hljs-built_in">require</span>(<span class="hljs-string">'./set'</span>) }
-<span class="hljs-keyword">var</span> Operation = <span class="hljs-built_in">require</span>(<span class="hljs-string">'operation'</span>)
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">const</span> Turnstile = { <span class="hljs-attr">Set</span>: <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./set&#x27;</span>) }
 
-<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Check</span> (<span class="hljs-params"></span>) </span>{
-    <span class="hljs-keyword">var</span> vargs = <span class="hljs-built_in">Array</span>.prototype.slice.call(<span class="hljs-built_in">arguments</span>)
-    <span class="hljs-keyword">this</span>._operation = Operation(vargs)
-    <span class="hljs-keyword">this</span>._set = <span class="hljs-keyword">new</span> Turnstile.Set(<span class="hljs-keyword">this</span>, <span class="hljs-string">'_check'</span>, vargs.shift())
-    <span class="hljs-keyword">this</span>.turnstile = <span class="hljs-keyword">this</span>._set.turnstile
-}
+<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Check</span> </span>{
+    <span class="hljs-title">constructor</span> (<span class="hljs-params">turnstile, method, object</span>) {
+        <span class="hljs-built_in">this</span>._set = <span class="hljs-keyword">new</span> Turnstile.Set(turnstile, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">entry</span>) </span>{
+            <span class="hljs-keyword">return</span> <span class="hljs-keyword">await</span> method.call(<span class="hljs-built_in">this</span>, {
+                <span class="hljs-attr">when</span>: entry.when,
+                <span class="hljs-attr">waited</span>: entry.waited,
+                <span class="hljs-attr">timedout</span>: entry.timedout,
+                <span class="hljs-attr">destroyed</span>: entry.destroyed,
+                <span class="hljs-attr">canceled</span>: entry.canceled
+            })
+        }, object)
+        <span class="hljs-built_in">this</span>.turnstile = <span class="hljs-built_in">this</span>._set.turnstile
+    }
 
-Check.prototype._check = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">envelope, callback</span>) </span>{
-    envelope.body = <span class="hljs-literal">null</span>
-    <span class="hljs-keyword">this</span>._operation(envelope, callback)
-}
-
-Check.prototype.check = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">callback</span>) </span>{
-    <span class="hljs-keyword">this</span>._set.add(<span class="hljs-string">'check'</span>, callback)
+    check (...vargs) {
+        <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>._set.add.apply(<span class="hljs-built_in">this</span>._set, [ <span class="hljs-string">&#x27;check&#x27;</span> ].concat(vargs))
+    }
 }
 
 <span class="hljs-built_in">module</span>.exports = Check</pre></div></div>

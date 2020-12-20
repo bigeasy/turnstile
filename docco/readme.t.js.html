@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>readme.t.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page_wrapper">
+            <div id="jump_page">
+
+
+                <a class="source" href="check.js.html">
+                  check.js
+                </a>
+
+
+                <a class="source" href="queue.js.html">
+                  queue.js
+                </a>
+
+
+                <a class="source" href="set.js.html">
+                  set.js
+                </a>
+
+
+                <a class="source" href="readme.t.js.html">
+                  readme.t.js
+                </a>
+
+
+                <a class="source" href="turnstile.js.html">
+                  turnstile.js
+                </a>
+
+            </div>
+          </div>
+        </li>
+      </ul>
+
+    <ul class="sections">
+
+          <li id="title">
+              <div class="annotation">
+                  <h1>readme.t.js</h1>
+              </div>
+          </li>
+
+
+
+        <li id="section-1">
+            <div class="annotation">
+
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+
+            </div>
+
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;proof&#x27;</span>)(<span class="hljs-number">5</span>, prove)
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">prove</span> (<span class="hljs-params">okay</span>) </span>{
+    <span class="hljs-keyword">const</span> Destructible = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;destructible&#x27;</span>)
+    <span class="hljs-keyword">const</span> Turnstile = <span class="hljs-function"><span class="hljs-title">require</span>(<span class="hljs-params"><span class="hljs-string">&#x27;../turnstile&#x27;</span></span>)</span>
+    {
+        <span class="hljs-keyword">const</span> destructible = <span class="hljs-keyword">new</span> Destructible($ =&gt; $(), <span class="hljs-string">&#x27;test/turnstile.t&#x27;</span>)
+        <span class="hljs-keyword">await</span> destructible.terminal($ =&gt; $(), <span class="hljs-string">&#x27;run and timeout&#x27;</span>, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">const</span> test = []
+            <span class="hljs-keyword">let</span> now = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">const</span> turnstile = <span class="hljs-keyword">new</span> Turnstile(destructible.durable(<span class="hljs-string">&#x27;turnstile&#x27;</span>), {
+                <span class="hljs-attr">turnstiles</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">Date</span>: { <span class="hljs-attr">now</span>: <span class="hljs-function">() =&gt;</span> now },
+                <span class="hljs-attr">timeout</span>: <span class="hljs-number">2</span>
+            })
+            turnstile.enter({ <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span> }, <span class="hljs-keyword">async</span> entry =&gt; {
+                test.push(entry)
+            })
+            now++
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            okay(test, [{
+                <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span>,
+                <span class="hljs-attr">when</span>: <span class="hljs-number">0</span>,
+                <span class="hljs-attr">waited</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">timedout</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">destroyed</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">canceled</span>: <span class="hljs-literal">false</span>
+            }], <span class="hljs-string">&#x27;simple run through turnstile&#x27;</span>)
+
+            test.length = <span class="hljs-number">0</span>
+            turnstile.enter({ <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span> }, <span class="hljs-keyword">async</span> entry =&gt; {
+                test.push(entry)
+            })
+            now += <span class="hljs-number">2</span>
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            okay(test, [{
+                <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span>,
+                <span class="hljs-attr">when</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">waited</span>: <span class="hljs-number">2</span>,
+                <span class="hljs-attr">timedout</span>: <span class="hljs-literal">true</span>,
+                <span class="hljs-attr">destroyed</span>: <span class="hljs-literal">false</span>,
+                <span class="hljs-attr">canceled</span>: <span class="hljs-literal">true</span>
+            }], <span class="hljs-string">&#x27;timed out run through turnstile&#x27;</span>)
+        })
+        <span class="hljs-keyword">await</span> destructible.rejected
+    }
+
+    {
+        <span class="hljs-keyword">const</span> destructible = <span class="hljs-keyword">new</span> Destructible($ =&gt; $(), <span class="hljs-string">&#x27;test/turnstile.t&#x27;</span>)
+        <span class="hljs-keyword">await</span> destructible.terminal($ =&gt; $(), <span class="hljs-string">&#x27;run and timeout&#x27;</span>, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">let</span> now = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">const</span> turnstile = <span class="hljs-keyword">new</span> Turnstile(destructible.durable(<span class="hljs-string">&#x27;turnstile&#x27;</span>), {
+                <span class="hljs-attr">turnstiles</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">Date</span>: { <span class="hljs-attr">now</span>: <span class="hljs-function">() =&gt;</span> now },
+                <span class="hljs-attr">timeout</span>: <span class="hljs-number">2</span>
+            })
+            <span class="hljs-keyword">const</span> test = []
+            <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">latch</span> (<span class="hljs-params"></span>) </span>{
+                <span class="hljs-keyword">let</span> capture
+                <span class="hljs-keyword">return</span> { <span class="hljs-attr">promise</span>: <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function"><span class="hljs-params">resolve</span> =&gt;</span> capture = { resolve }), ...capture }
+            }
+            <span class="hljs-keyword">const</span> work = { <span class="hljs-attr">entered</span>: latch(), <span class="hljs-attr">blocked</span>: latch() }
+            turnstile.enter({ ...work, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span> }, <span class="hljs-keyword">async</span> ({ entered, blocked, value, timedout }) =&gt; {
+                entered.resolve()
+                <span class="hljs-keyword">await</span> blocked.promise
+                test.push({ value, timedout })
+            })
+            <span class="hljs-keyword">await</span> work.entered.promise
+            turnstile.enter({ <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, timedout }) =&gt; {
+                test.push({ value, timedout })
+            })
+            now += <span class="hljs-number">2</span>
+            turnstile.enter({ <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;c&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, timedout }) =&gt; {
+                test.push({ value, timedout })
+            })
+            work.blocked.resolve()
+            <span class="hljs-keyword">await</span> turnstile.drain()
+        })
+        <span class="hljs-keyword">await</span> destructible.destroy().rejected
+    }
+
+    {
+        <span class="hljs-keyword">const</span> destructible = <span class="hljs-keyword">new</span> Destructible($ =&gt; $(), <span class="hljs-string">&#x27;test/turnstile.t&#x27;</span>)
+        <span class="hljs-keyword">await</span> destructible.terminal($ =&gt; $(), <span class="hljs-string">&#x27;run and timeout&#x27;</span>, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">let</span> now = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">const</span> turnstile = <span class="hljs-keyword">new</span> Turnstile(destructible.durable(<span class="hljs-string">&#x27;turnstile&#x27;</span>), {
+                <span class="hljs-attr">turnstiles</span>: <span class="hljs-number">1</span>,
+                <span class="hljs-attr">Date</span>: { <span class="hljs-attr">now</span>: <span class="hljs-function">() =&gt;</span> now },
+                <span class="hljs-attr">timeout</span>: <span class="hljs-number">2</span>
+            })
+            <span class="hljs-keyword">const</span> test = []
+            turnstile.enter($ =&gt; $(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(value)
+            })
+            turnstile.enter($ =&gt; $(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                test.push({ value, destroyed })
+            })
+            <span class="hljs-keyword">await</span> turnstile.drain()
+        })
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">await</span> destructible.rejected
+        } <span class="hljs-keyword">catch</span> (error) {
+            <span class="hljs-built_in">console</span>.log(error.stack)
+        }
+    }
+
+    {
+        <span class="hljs-keyword">const</span> destructible = <span class="hljs-keyword">new</span> Destructible($ =&gt; $(), <span class="hljs-string">&#x27;test/turnstile.t&#x27;</span>)
+        <span class="hljs-keyword">await</span> destructible.terminal($ =&gt; $(), <span class="hljs-string">&#x27;run and timeout&#x27;</span>, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">let</span> now = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">const</span> test = []
+            <span class="hljs-keyword">const</span> turnstile = <span class="hljs-keyword">new</span> Turnstile(destructible.durable($ =&gt; $(), <span class="hljs-string">&#x27;turnstile&#x27;</span>))
+            <span class="hljs-keyword">const</span> countdown = turnstile.countdown($ =&gt; $(), <span class="hljs-string">&#x27;countdown&#x27;</span>)
+            turnstile.enter($ =&gt; $(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                test.push(value)
+            })
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            turnstile.destructible.destroy()
+            turnstile.enter($ =&gt; $(), <span class="hljs-built_in">Date</span>.now(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                test.push(value)
+            })
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            countdown.decrement()
+            <span class="hljs-keyword">try</span> {
+                <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;ENTERING&#x27;</span>, turnstile.terminated)
+                turnstile.enter($ =&gt; $(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;c&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                    test.push(value)
+                })
+            } <span class="hljs-keyword">catch</span> (error) {
+                okay(error.symbol, Destructible.Error.DESTROYED, <span class="hljs-string">&#x27;turnstile was destroyed&#x27;</span>)
+            }
+            okay(test, [ <span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-string">&#x27;b&#x27;</span> ], <span class="hljs-string">&#x27;countdown&#x27;</span>)
+        })
+        <span class="hljs-keyword">await</span> destructible.rejected
+    }
+
+    {
+        <span class="hljs-keyword">const</span> destructible = <span class="hljs-keyword">new</span> Destructible($ =&gt; $(), <span class="hljs-string">&#x27;test/turnstile.t&#x27;</span>)
+        <span class="hljs-keyword">await</span> destructible.terminal($ =&gt; $(), <span class="hljs-string">&#x27;run and timeout&#x27;</span>, <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-keyword">let</span> now = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">const</span> test = []
+            <span class="hljs-keyword">const</span> turnstile = <span class="hljs-keyword">new</span> Turnstile(destructible.durable($ =&gt; $(), <span class="hljs-string">&#x27;turnstile&#x27;</span>))
+            <span class="hljs-keyword">const</span> entry = turnstile.enter($ =&gt; $(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;a&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                test.push(value)
+            })
+            turnstile.unqueue(entry)
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            turnstile.enter($ =&gt; $(), <span class="hljs-built_in">Date</span>.now(), { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;b&#x27;</span> }, <span class="hljs-keyword">async</span> ({ value, destroyed }) =&gt; {
+                test.push(value)
+            })
+            <span class="hljs-keyword">await</span> turnstile.drain()
+            okay(test, [ <span class="hljs-string">&#x27;b&#x27;</span> ], <span class="hljs-string">&#x27;unqueue&#x27;</span>)
+        })
+        <span class="hljs-keyword">await</span> destructible.rejected
+    }
+}</pre></div></div>
+
+        </li>
+
+    </ul>
+  </div>
+</body>
+</html>
