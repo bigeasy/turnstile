@@ -73,7 +73,6 @@ class Turnstile {
             this._countdown.decrement()
         })
         this._countdown.destruct(() => {
-            console.log('DESTROYED')
             this.terminated = true
             while (this._latches.length != 0) {
                 this._latches.shift().resolve.call()
