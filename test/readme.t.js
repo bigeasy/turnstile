@@ -1,4 +1,4 @@
-require('proof')(5, prove)
+require('proof')(6, prove)
 
 async function prove (okay) {
     const Destructible = require('destructible')
@@ -117,7 +117,7 @@ async function prove (okay) {
             })
             await turnstile.drain()
             counter.destructible.destruct(() => console.log('destructed'))
-            turnstile.destructible.destroy()
+            destructible.destroy()
             turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
                 test.push(value)
             })

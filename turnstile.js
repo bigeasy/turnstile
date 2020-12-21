@@ -39,7 +39,7 @@ class Turnstile {
 
         // Here is the new staged destruction convenion.
         this.counted = { turnstile: this }
-        this.destructible = this._destructible.terminal('counters')
+        this.destructible = this._destructible.durable('counters')
         this.countdown = this._destructible.durable($ => $(), 'countdown')
 
         this.countdown.increment()
