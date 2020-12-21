@@ -33,23 +33,16 @@ class Turnstile {
         unlinked: { value: true, enumerable: true, writable: false, configurable: false }
     })
 
-    static Countdown = class {
-        constructor (turnstile, vargs) {
-            this.turnstile = turnstile
-            this.destructible = turnstile.destructible.durable.apply(turnstile.destructible, vargs)
-            this.turnstile._countdown.increment()
-        }
-
-        decrement () {
-            this.turnstile._countdown.decrement()
-        }
-    }
-
     constructor (destructible, options = {}) {
         this.terminated = false
-        this.destructible = destructible
-        this._countdown = destructible.durable($ => $(), 'turnstile')
-        this._countdown.increment()
+        this._destructible = destructible
+
+        // Here is the new staged destruction convenion.
+        this.counted = { turnstile: this }
+        this.destructible = this._destructible.terminal('counters')
+        this.countdown = this._destructible.durable($ => $(), 'countdown')
+
+        this.countdown.increment()
         this._instance = 0
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
@@ -70,31 +63,26 @@ class Turnstile {
         this._errors = []
         this.destructible.destruct(() => {
             this.destroyed = true
-            this._countdown.decrement()
+            this.countdown.decrement()
         })
-        this._countdown.destruct(() => {
+        this.countdown.destruct(() => {
             this.terminated = true
             while (this._latches.length != 0) {
                 this._latches.shift().resolve.call()
             }
             this._reject.resolve.call()
-            this._countdown.ephemeral($ => $(), 'shutdown', async () => {
+            this.countdown.ephemeral($ => $(), 'shutdown', async () => {
                 await this.drain()
                 if (this._errors.length != 0) {
                     throw new Turnstile.Error('ERRORED', this._errors, { ...this.health }, 1)
                 }
             })
         })
-        this._countdown.durable($ => $(), 'rejector', this._turnstile(true))
+        this.countdown.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
-            this._countdown.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
+            this.countdown.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
         }
     }
-    //
-    countdown (...vargs) {
-        return new Turnstile.Countdown(this, vargs)
-    }
-    //
 
     // Return the total number of entries in the Turnstile, the number of
     // waiting entries plus any entry being processed or rejected.
@@ -259,7 +247,7 @@ class Turnstile {
             } catch (error) {
                 // Gather any errors and shutdown.
                 this._errors.push(new Turnstile.Error({ $trace: entry.trace }, 'CAUGHT', [ error ], 1))
-                this.destructible.destroy()
+                this._destructible.destroy()
             } finally {
                 if (rejector) {
                     this.health.rejecting--

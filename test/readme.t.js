@@ -110,17 +110,19 @@ async function prove (okay) {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
-            const countdown = turnstile.countdown($ => $(), 'countdown')
+            const counter = Destructible.counter($ => $(), 'countdown', turnstile)
+            okay(counter.counted.turnstile === turnstile, 'turnstile is counted object')
             turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
+            counter.destructible.destruct(() => console.log('destructed'))
             turnstile.destructible.destroy()
             turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
-            countdown.decrement()
+            counter.decrement()
             try {
                 console.log('ENTERING', turnstile.terminated)
                 turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {

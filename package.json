@@ -26,7 +26,7 @@
     },
     "devDependencies":
     {
-                            "destructible":                 "7.0.0-alpha.18",
+                            "destructible":                 "7.0.0-alpha.19",
                             "proof":                        "^9.0.2"
     },
     "main":                 "turnstile",
