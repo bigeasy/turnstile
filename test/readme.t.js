@@ -1,4 +1,4 @@
-require('proof')(6, prove)
+require('proof')(5, prove)
 
 async function prove (okay) {
     const Destructible = require('destructible')
@@ -110,19 +110,18 @@ async function prove (okay) {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
-            const counter = Destructible.counter($ => $(), 'countdown', turnstile)
-            okay(counter.counted.turnstile === turnstile, 'turnstile is counted object')
+            turnstile.countdown.increment()
             turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
-            counter.destructible.destruct(() => console.log('destructed'))
+            turnstile.countdown.destruct(() => console.log('destructed'))
             destructible.destroy()
             turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
-            counter.decrement()
+            turnstile.countdown.decrement()
             try {
                 console.log('ENTERING', turnstile.terminated)
                 turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {

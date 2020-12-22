@@ -35,14 +35,11 @@ class Turnstile {
 
     constructor (destructible, options = {}) {
         this.terminated = false
-        this._destructible = destructible
 
         // Here is the new staged destruction convenion.
-        this.counted = { turnstile: this }
-        this.destructible = this._destructible.durable('counters')
-        this.countdown = this._destructible.durable($ => $(), 'countdown')
+        this.destructible = destructible
+        this.countdown = this.destructible.durable($ => $(), 'countdown', 2)
 
-        this.countdown.increment()
         this._instance = 0
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
@@ -247,7 +244,7 @@ class Turnstile {
             } catch (error) {
                 // Gather any errors and shutdown.
                 this._errors.push(new Turnstile.Error({ $trace: entry.trace }, 'CAUGHT', [ error ], 1))
-                this._destructible.destroy()
+                this.destructible.destroy()
             } finally {
                 if (rejector) {
                     this.health.rejecting--
