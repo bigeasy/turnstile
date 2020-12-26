@@ -60,7 +60,7 @@ class Turnstile {
 
         // Here is the new staged destruction convenion.
         this.destructible = destructible
-        this.countdown = this.destructible.durable($ => $(), 'countdown', 1)
+        this.deferrable = this.destructible.durable($ => $(), 'deferrable', 1)
 
         this._instance = 0
         this._head = { timesout: Infinity }
@@ -82,24 +82,24 @@ class Turnstile {
         this._errors = []
         this.destructible.destruct(() => {
             this.destroyed = true
-            this.countdown.decrement()
+            this.deferrable.decrement()
         })
-        this.countdown.destruct(() => {
+        this.deferrable.destruct(() => {
             this.terminated = true
             while (this._latches.length != 0) {
                 this._latches.shift().resolve.call()
             }
             this._reject.resolve.call()
-            this.countdown.ephemeral($ => $(), 'shutdown', async () => {
+            this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
                 await this.drain()
                 if (this._errors.length != 0) {
                     throw new Turnstile.Error('ERRORED', this._errors, { ...this.health }, 1)
                 }
             })
         })
-        this.countdown.durable($ => $(), 'rejector', this._turnstile(true))
+        this.deferrable.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
-            this.countdown.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
+            this.deferrable.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
         }
     }
 

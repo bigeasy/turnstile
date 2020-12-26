@@ -114,18 +114,18 @@ async function prove (okay) {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
-            turnstile.countdown.increment()
+            turnstile.deferrable.increment()
             turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
-            turnstile.countdown.destruct(() => console.log('destructed'))
+            turnstile.deferrable.destruct(() => console.log('destructed'))
             destructible.destroy()
             turnstile.enter($ => $(), Date.now(), { value: 'b' }, async ({ value, destroyed }) => {
                 test.push(value)
             })
             await turnstile.drain()
-            turnstile.countdown.decrement()
+            turnstile.deferrable.decrement()
             try {
                 turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {
                     test.push(value)
@@ -133,7 +133,7 @@ async function prove (okay) {
             } catch (error) {
                 okay(error.symbol, Destructible.Error.DESTROYED, 'turnstile was destroyed')
             }
-            okay(test, [ 'a', 'b' ], 'countdown')
+            okay(test, [ 'a', 'b' ], 'deferrable')
         })
         await destructible.promise
     }
