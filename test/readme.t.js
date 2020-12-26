@@ -1,11 +1,12 @@
-require('proof')(5, prove)
+require('proof')(7, prove)
 
 async function prove (okay) {
+    const semblance = require('semblance')
     const Destructible = require('destructible')
     const Turnstile = require('../turnstile')
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        await destructible.terminal($ => $(), 'run and timeout', async function () {
+        destructible.rescue($ => $(), 'run and timeout', async function () {
             const test = []
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
@@ -41,13 +42,14 @@ async function prove (okay) {
                 destroyed: false,
                 canceled: true
             }], 'timed out run through turnstile')
+            destructible.destroy()
         })
-        await destructible.rejected
+        await destructible.promise
     }
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        await destructible.terminal($ => $(), 'run and timeout', async function () {
+        destructible.rescue($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
                 turnstiles: 1,
@@ -66,6 +68,7 @@ async function prove (okay) {
                 test.push({ value, timedout })
             })
             await work.entered.promise
+            console.log('here')
             turnstile.enter({ value: 'b' }, async ({ value, timedout }) => {
                 test.push({ value, timedout })
             })
@@ -75,13 +78,14 @@ async function prove (okay) {
             })
             work.blocked.resolve()
             await turnstile.drain()
+            destructible.destroy()
         })
-        await destructible.destroy().rejected
+        await destructible.promise
     }
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        await destructible.terminal($ => $(), 'run and timeout', async function () {
+        destructible.rescue($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
                 turnstiles: 1,
@@ -98,7 +102,7 @@ async function prove (okay) {
             await turnstile.drain()
         })
         try {
-            await destructible.rejected
+            await destructible.promise
         } catch (error) {
             console.log(error.stack)
         }
@@ -106,7 +110,7 @@ async function prove (okay) {
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        await destructible.terminal($ => $(), 'run and timeout', async function () {
+        destructible.rescue($ => $(), 'run and timeout', async function () {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
@@ -123,7 +127,6 @@ async function prove (okay) {
             await turnstile.drain()
             turnstile.countdown.decrement()
             try {
-                console.log('ENTERING', turnstile.terminated)
                 turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {
                     test.push(value)
                 })
@@ -132,7 +135,7 @@ async function prove (okay) {
             }
             okay(test, [ 'a', 'b' ], 'countdown')
         })
-        await destructible.rejected
+        await destructible.promise
     }
 
     {
@@ -152,6 +155,23 @@ async function prove (okay) {
             await turnstile.drain()
             okay(test, [ 'b' ], 'unqueue')
         })
-        await destructible.rejected
+        await destructible.promise
+    }
+
+    {
+        const options = Turnstile.options([ { value: 1 }, async () => {} ])
+        okay(semblance(options, {
+            trace: null,
+            when: null,
+            work: { value: 1 },
+            worker: value => typeof value == 'function',
+            object: null
+        }), 'options')
+        const vargs = Turnstile.vargs(options)
+        okay(semblance(vargs, [
+            { value: 1 },
+            value => typeof value == 'function',
+            null
+        ], { length: 3 }), 'vargs')
     }
 }

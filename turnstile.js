@@ -51,7 +51,7 @@ class Turnstile {
         if (options.when != null) {
             vargs.push(options.when)
         }
-        vargs.push(when, options.work, options.worker, options.object)
+        vargs.push(options.work, options.worker, options.object)
         return vargs
     }
 
@@ -60,7 +60,7 @@ class Turnstile {
 
         // Here is the new staged destruction convenion.
         this.destructible = destructible
-        this.countdown = this.destructible.durable($ => $(), 'countdown', 2)
+        this.countdown = this.destructible.durable($ => $(), 'countdown', 1)
 
         this._instance = 0
         this._head = { timesout: Infinity }
