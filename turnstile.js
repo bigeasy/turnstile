@@ -33,6 +33,28 @@ class Turnstile {
         unlinked: { value: true, enumerable: true, writable: false, configurable: false }
     })
 
+    static options (vargs) {
+        return {
+            trace: typeof vargs[0] == 'function' ? vargs.shift() : null,
+            when: typeof vargs[0] == 'number' ? vargs.shift() : null,
+            work: vargs.shift(),
+            worker: vargs.shift(),
+            object: coalesce(vargs.shift())
+        }
+    }
+
+    static vargs (options) {
+        const vargs = []
+        if (options.trace != null) {
+            vargs.push(options.trace)
+        }
+        if (options.when != null) {
+            vargs.push(options.when)
+        }
+        vargs.push(when, options.work, options.worker, options.object)
+        return vargs
+    }
+
     constructor (destructible, options = {}) {
         this.terminated = false
 
@@ -138,22 +160,13 @@ class Turnstile {
     //
     enter (...vargs) {
         Destructible.Error.assert(!this.terminated, 'DESTROYED')
-        const trace = typeof vargs[0] == 'function' ? vargs.shift() : null
-        const when = typeof vargs[0] == 'number' ? vargs.shift() : this._Date.now()
-        const work = vargs.shift()
-        const worker = vargs.shift()
-        const object = coalesce(vargs.shift())
-        // Pop and shift variadic arguments.
-        const now = coalesce(when, this._Date.now())
+        const options = Turnstile.options(vargs)
+        options.when = coalesce(options.when, this._Date.now())
         const entry = {
             type: Turnstile.ENTRY,
             unlinked: false,
-            trace: trace,
-            work: work,
-            worker: worker,
-            object: coalesce(object),
-            when: when,
-            timesout: now + this.timeout,
+            ...options,
+            timesout: options.when + this.timeout,
             previous: this._head.previous,
             next: this._head
         }
@@ -167,7 +180,7 @@ class Turnstile {
         // make our work queue a certain length, there is no harm in leaving it
         // that length for however long it takes for us to detect that it is
         // stuggling. We just won't grow it when messages are timing out.
-        if (now < this._head.next.timesout) {
+        if (options.when < this._head.next.timesout) {
             this._reject.resolve.call()
         }
         return entry
