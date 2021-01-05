@@ -3,9 +3,10 @@ const coalesce = require('extant')
 
 const Interrupt = require('interrupt')
 
-const noop = require('nop')
-
 const Destructible = require('destructible')
+
+// A Promise wrapper that captures `resolve` and `reject`.
+const Future = require('perhaps')
 
 // Construct a turnstile.
 //
@@ -72,10 +73,9 @@ class Turnstile {
         this.timeout = coalesce(options.timeout, Infinity)
         this._Date = coalesce(options.Date, Date)
         // Create a queue of work that has timed out.
-        this._reject = { promise: null, resolve: noop }
+        this._reject = new Future({ resolution: [] })
         // Poll the rejectable queue for timed out work.
-        this._drain = null
-        this._drained = noop
+        this._drain = new Future({ resolution: [] })
         this.destroyed = false
         this.terminated = false
         this._latches = []
@@ -87,9 +87,9 @@ class Turnstile {
         this.deferrable.destruct(() => {
             this.terminated = true
             while (this._latches.length != 0) {
-                this._latches.shift().resolve.call()
+                this._latches.shift().resolve()
             }
-            this._reject.resolve.call()
+            this._reject.resolve()
             this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
                 await this.drain()
                 if (this._errors.length != 0) {
@@ -129,21 +129,13 @@ class Turnstile {
     }
 
     drain () {
-        if (this._drain == null) {
-            this._drain = new Promise(resolve => this._drained = resolve)
+        if (this.size != 0) {
+            if (this._drain.fulfilled) {
+                this._drain = new Future
+            }
+            return this._drain.promise
         }
-        const drain = this._drain
-        this._checkDrain()
-        return drain
-    }
-
-    _checkDrain () {
-        if (this._drain != null && this.size == 0) {
-            this._drain = null
-            const drained = this._drained
-            this._drained = noop
-            drained.call()
-        }
+        return null
     }
 
     // Enter work into the queue. Properties of the `envelope` argument can include:
@@ -181,7 +173,7 @@ class Turnstile {
         // that length for however long it takes for us to detect that it is
         // stuggling. We just won't grow it when messages are timing out.
         if (options.when < this._head.next.timesout) {
-            this._reject.resolve.call()
+            this._reject.resolve()
         }
         return entry
     }
@@ -216,8 +208,7 @@ class Turnstile {
                 if (this.terminated) {
                     break
                 }
-                let capture
-                const latch = { promise: new Promise(resolve => capture = { resolve }), ...capture }
+                const latch = new Future
                 if (rejector) {
                     this._reject = latch
                 } else {
@@ -264,7 +255,9 @@ class Turnstile {
                 } else {
                     this.health.occupied--
                 }
-                this._checkDrain()
+                if (this.size == 0) {
+                    this._drain.resolve()
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ class Queue {
     enqueue (value, ...vargs) {
         return new Promise(resolve => {
             this.turnstile.enter($ => $(), { value }, async entry => {
-                    resolve(await this._method.call(this._object, entry))
+                resolve(await this._method.call(this._object, entry))
             })
         })
     }
