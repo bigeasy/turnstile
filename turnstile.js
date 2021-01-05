@@ -130,10 +130,14 @@ class Turnstile {
 
     drain () {
         if (this.size != 0) {
-            if (this._drain.fulfilled) {
-                this._drain = new Future
-            }
-            return this._drain.promise
+            return (async () => {
+                while (this.size != 0) {
+                    if (this._drain.fulfilled) {
+                        this._drain = new Future
+                    }
+                    await this._drain.promise
+                }
+            }) ()
         }
         return null
     }
