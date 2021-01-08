@@ -21,9 +21,6 @@ const Future = require('perhaps')
 //
 class Turnstile {
     static Error = Interrupt.create('Turnstile.Error', {
-        TERMINATED: 'attempted to enqueue new work into a terminated turnstile',
-        ERRORED: 'errors encountered while running turnstile',
-        CAUGHT: 'errors encountered while running turnstile',
         INVALID_ARGUMENT: 'dequeue argument is not a Turnstile entry'
     })
 
@@ -57,13 +54,9 @@ class Turnstile {
     }
 
     constructor (destructible, options = {}) {
-        this.terminated = false
-
         // Here is the new staged destruction convenion.
         this.destructible = destructible
-        this.deferrable = this.destructible.durable($ => $(), 'deferrable', 1)
-
-        this._instance = 0
+        this.deferrable = this.destructible.durable($ => $(), 'deferrable', { countdown: 1 })
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
         this.health = {
@@ -76,13 +69,13 @@ class Turnstile {
         this._reject = new Future({ resolution: [] })
         // Poll the rejectable queue for timed out work.
         this._drain = new Future({ resolution: [] })
-        this.destroyed = false
-        this.terminated = false
         this._latches = []
         this._errors = []
         this.destructible.destruct(() => {
-            this.destroyed = true
-            this.deferrable.decrement()
+            this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
+                await this.drain()
+                this.deferrable.decrement()
+            })
         })
         this.deferrable.destruct(() => {
             this.terminated = true
@@ -90,12 +83,6 @@ class Turnstile {
                 this._latches.shift().resolve()
             }
             this._reject.resolve()
-            this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
-                await this.drain()
-                if (this._errors.length != 0) {
-                    throw new Turnstile.Error('ERRORED', this._errors, { ...this.health }, 1)
-                }
-            })
         })
         this.deferrable.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
@@ -155,7 +142,7 @@ class Turnstile {
 
     //
     enter (...vargs) {
-        Destructible.Error.assert(!this.terminated, 'DESTROYED')
+        Destructible.Error.assert(!this.deferrable.destroyed, 'DESTROYED')
         const options = Turnstile.options(vargs)
         options.when = coalesce(options.when, this._Date.now())
         const entry = {
@@ -209,7 +196,7 @@ class Turnstile {
                     this._Date.now() > this._head.next.timesout
                 )
             ) {
-                if (this.terminated) {
+                if (this.deferrable.destroyed) {
                     break
                 }
                 const latch = new Future
@@ -244,15 +231,11 @@ class Turnstile {
                         when: entry.when,
                         waited: now - entry.when,
                         timedout,
-                        destroyed: this.destroyed,
-                        canceled: timedout || this.destroyed,
+                        destroyed: this.deferrable.destroyed,
+                        canceled: timedout || this.deferrable.destroyed
                     }
                     await entry.worker.call(entry.object, work)
                 }
-            } catch (error) {
-                // Gather any errors and shutdown.
-                this._errors.push(new Turnstile.Error({ $trace: entry.trace }, 'CAUGHT', [ error ], 1))
-                this.destructible.destroy()
             } finally {
                 if (rejector) {
                     this.health.rejecting--
