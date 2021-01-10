@@ -94,12 +94,15 @@ async function prove (okay) {
             })
             const test = []
             turnstile.enter($ => $(), { value: 'a' }, async ({ value, destroyed }) => {
-                throw new Error(value)
-            })
-            turnstile.enter($ => $(), { value: 'b' }, async ({ value, destroyed }) => {
                 test.push({ value, destroyed })
             })
-            await turnstile.drain()
+            turnstile.enter($ => $(), { value: 'b' }, async ({ value, destroyed }) => {
+                throw new Error(value)
+            })
+            turnstile.enter($ => $(), { value: 'c' }, async ({ value, destroyed }) => {
+                test.push({ value, destroyed })
+            })
+            destructible.destroy()
         })
         try {
             await destructible.promise
@@ -140,7 +143,7 @@ async function prove (okay) {
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        await destructible.terminal($ => $(), 'run and timeout', async function () {
+        await destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
@@ -154,6 +157,7 @@ async function prove (okay) {
             })
             await turnstile.drain()
             okay(test, [ 'b' ], 'unqueue')
+            destructible.destroy()
         })
         await destructible.promise
     }

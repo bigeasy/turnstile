@@ -73,10 +73,11 @@ class Turnstile {
         this._errors = []
         this.destructible.destruct(() => {
             this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
-                await this.drain()
+                await this.destructible.copacetic('drain', null, async () => this.drain())
                 this.deferrable.decrement()
             })
         })
+        this.destructible.panic(() => this._drain.resolve())
         this.deferrable.destruct(() => {
             this.terminated = true
             while (this._latches.length != 0) {
