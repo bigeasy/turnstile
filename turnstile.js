@@ -66,9 +66,9 @@ class Turnstile {
         this.timeout = coalesce(options.timeout, Infinity)
         this._Date = coalesce(options.Date, Date)
         // Create a queue of work that has timed out.
-        this._reject = new Future({ resolution: [] })
+        this._reject = Future.resolve()
         // Poll the rejectable queue for timed out work.
-        this._drain = new Future({ resolution: [] })
+        this._drain = Future.resolve()
         this._latches = []
         this._errors = []
         this.destructible.destruct(() => {
