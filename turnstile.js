@@ -74,6 +74,7 @@ class Turnstile {
         this.destructible.destruct(() => {
             this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
                 await this.destructible.copacetic('drain', null, async () => this.drain())
+                this._drain.resolve()
                 this.deferrable.decrement()
             })
         })
