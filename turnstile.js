@@ -72,7 +72,7 @@ class Turnstile {
         this._latches = []
         this._errors = []
         this.destructible.destruct(() => {
-            this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
+            this.destructible.ephemeral($ => $(), 'shutdown', async () => {
                 await this.destructible.copacetic('drain', null, async () => this.drain())
                 this._drain.resolve()
                 this.deferrable.decrement()
@@ -120,7 +120,7 @@ class Turnstile {
     drain () {
         if (this.size != 0) {
             return (async () => {
-                while (this.size != 0) {
+                while (this.size != 0 && ! this.deferrable.destroyed) {
                     if (this._drain.fulfilled) {
                         this._drain = new Future
                     }
@@ -165,7 +165,7 @@ class Turnstile {
         // make our work queue a certain length, there is no harm in leaving it
         // that length for however long it takes for us to detect that it is
         // stuggling. We just won't grow it when messages are timing out.
-        if (options.when < this._head.next.timesout) {
+        if (this._head.next.timesout <= this._Date.now()) {
             this._reject.resolve()
         }
         return entry
@@ -191,16 +191,16 @@ class Turnstile {
     //
     async _turnstile (rejector) {
         for (;;) {
+            if (this.deferrable.destroyed) {
+                break
+            }
             if (
                 this.health.waiting == 0 ||
                 (
                     rejector &&
-                    this._Date.now() > this._head.next.timesout
+                    this._head.next.timesout > this._Date.now()
                 )
             ) {
-                if (this.deferrable.destroyed) {
-                    break
-                }
                 const latch = new Future
                 if (rejector) {
                     this._reject = latch
@@ -211,42 +211,36 @@ class Turnstile {
                 continue
             }
             let entry
-            try {
-                if (rejector) {
-                    this.health.rejecting++
-                } else {
-                    this.health.occupied++
-                }
-                // Work through the work in the queue.
-                while (this.health.waiting != 0) {
-                    const now = this._Date.now()
-                    // Shift a task off of the work queue.
-                    entry = this._head.next
-                    this._unlink(entry)
-                    this.health.waiting--
-                    // Run the task and mark it as completed if it succeeds.
-                    entry.next = entry.previous = null
-                    const timedout = entry.timesout <= now
-                    const waited = now - entry.when
-                    const work = {
-                        ...entry.work,
-                        when: entry.when,
-                        waited: now - entry.when,
-                        timedout,
-                        destroyed: this.deferrable.destroyed,
-                        canceled: timedout || this.deferrable.destroyed
-                    }
-                    await entry.worker.call(entry.object, work)
-                }
-            } finally {
-                if (rejector) {
-                    this.health.rejecting--
-                } else {
-                    this.health.occupied--
-                }
-                if (this.size == 0) {
-                    this._drain.resolve()
-                }
+            if (rejector) {
+                this.health.rejecting++
+            } else {
+                this.health.occupied++
+            }
+            const now = this._Date.now()
+            // Shift a task off of the work queue.
+            entry = this._head.next
+            this._unlink(entry)
+            this.health.waiting--
+            // Run the task and mark it as completed if it succeeds.
+            entry.next = entry.previous = null
+            const timedout = entry.timesout <= now
+            const waited = now - entry.when
+            const work = {
+                ...entry.work,
+                when: entry.when,
+                waited: now - entry.when,
+                timedout,
+                destroyed: this.deferrable.destroyed,
+                canceled: timedout || this.deferrable.destroyed
+            }
+            await entry.worker.call(entry.object, work)
+            if (rejector) {
+                this.health.rejecting--
+            } else {
+                this.health.occupied--
+            }
+            if (this.size == 0) {
+                this._drain.resolve()
             }
         }
     }

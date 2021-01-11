@@ -68,7 +68,6 @@ async function prove (okay) {
                 test.push({ value, timedout })
             })
             await work.entered.promise
-            console.log('here')
             turnstile.enter({ value: 'b' }, async ({ value, timedout }) => {
                 test.push({ value, timedout })
             })
