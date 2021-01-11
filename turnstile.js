@@ -56,7 +56,7 @@ class Turnstile {
     constructor (destructible, options = {}) {
         // Here is the new staged destruction convenion.
         this.destructible = destructible
-        this.deferrable = this.destructible.durable($ => $(), 'deferrable', { countdown: 1 })
+        this.deferrable = this.destructible.durable($ => $(), { countdown: 1 }, 'deferrable')
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
         this.health = {
@@ -88,7 +88,7 @@ class Turnstile {
         })
         this.deferrable.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
-            this.deferrable.durable($ => $(), [ 'turnstile', i ], this._turnstile(false))
+            this.deferrable.durable($ => $(), `turnstile.${i}`, this._turnstile(false))
         }
     }
 
