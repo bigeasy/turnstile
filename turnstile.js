@@ -144,7 +144,7 @@ class Turnstile {
 
     //
     enter (...vargs) {
-        Destructible.Error.assert(!this.deferrable.destroyed, 'DESTROYED')
+        this.deferrable.operational()
         const options = Turnstile.options(vargs)
         options.when = coalesce(options.when, this._Date.now())
         const entry = {
