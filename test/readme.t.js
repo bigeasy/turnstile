@@ -6,7 +6,7 @@ async function prove (okay) {
     const Turnstile = require('../turnstile')
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        destructible.rescue($ => $(), 'run and timeout', async function () {
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             const test = []
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
@@ -49,7 +49,7 @@ async function prove (okay) {
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        destructible.rescue($ => $(), 'run and timeout', async function () {
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
                 turnstiles: 1,
@@ -84,7 +84,7 @@ async function prove (okay) {
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        destructible.rescue($ => $(), 'run and timeout', async function () {
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
                 turnstiles: 1,
@@ -112,7 +112,7 @@ async function prove (okay) {
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        destructible.rescue($ => $(), 'run and timeout', async function () {
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const test = []
             const turnstile = new Turnstile(destructible.durable($ => $(), 'turnstile'))
