@@ -52,11 +52,50 @@ class Turnstile {
         vargs.push(options.work, options.worker, options.object)
         return vargs
     }
+    //
 
+    // **TODO** Thoughts. You can delete them in time. Today is 1/18/21.
+
+    // Hard to say. We could go ahead and push interpretations down to fracture,
+    // here we do let our workers run, do not let them crash, but if our
+    // destructible has errored we set an errored flag and if you error when the
+    // errored flag is set, that's it, we collapse.
+
+    // We have isolation in destructible for this, but now we're going to have
+    // to tell users that if they use turnstile and fracture they can't have a
+    // single turnstile for their entire application if they want to do
+    // isolation, which might be an okay thing to tell them. If you your
+    // database service is isolated, then you have to think about how to isolate
+    // the turnstile as well, which means separately assigning strands for it.
+
+    // This is convoluted, but we really should have pristine shutdowns before
+    // we start thinking about layers. Turnstile hasn't been a good error
+    // handler at all in its entire life.
+
+    // Can't you just isolate the application wide turnstile? But, it's
+    // application wide.
+
+    // We can formalize this. Fracture can take a destructible that is the
+    // destructible we'll use for context. Then it's official. We can isolate
+    // our turnstile but if we're using fracture it is already isolated.
+
+    // No, wait. No, yes. It is easy to isolate. It's not going to add a lot of
+    // work, we can isolate fractures easily too.
+
+    // It gets complicated, but not for me.
+
+    // It might even be as simple as using the fracture's destructible for
+    // context and fracture has its logic to skip work or the user can provide
+    // an optional errored function.
+
+    // End thoughts.
+
+    //
     constructor (destructible, options = {}) {
         // Here is the new staged destruction convenion.
         this.destructible = destructible
         this.deferrable = this.destructible.durable($ => $(), { countdown: 1 }, 'deferrable')
+        this._terminated = false
         this._head = { timesout: Infinity }
         this._head.next = this._head.previous = this._head
         this.health = {
@@ -71,20 +110,20 @@ class Turnstile {
         this._drain = Future.resolve()
         this._latches = []
         this._errors = []
-        this.destructible.destruct(() => {
-            this.destructible.ephemeral($ => $(), 'shutdown', async () => {
-                await this.destructible.copacetic('drain', null, async () => this.drain())
-                this._drain.resolve()
-                this.deferrable.decrement()
+        this.destructible.destruct(() => this.deferrable.decrement())
+        this.deferrable.destruct(() => {
+            this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
+                await this.destructible.copacetic('make this go away', async () => this.drain())
+                this._terminated = true
+                while (this._latches.length != 0) {
+                    this._latches.shift().resolve()
+                }
+                this._reject.resolve()
             })
         })
-        this.destructible.panic(() => this._drain.resolve())
-        this.deferrable.destruct(() => {
-            this.terminated = true
-            while (this._latches.length != 0) {
-                this._latches.shift().resolve()
-            }
-            this._reject.resolve()
+        this.deferrable.panic(() => {
+            this._terminated = true
+            this._drain.resolve()
         })
         this.deferrable.durable($ => $(), 'rejector', this._turnstile(true))
         for (let i = 0; i < this.health.strands; i++) {
@@ -120,7 +159,7 @@ class Turnstile {
     drain () {
         if (this.size != 0) {
             return (async () => {
-                while (this.size != 0 && ! this.deferrable.destroyed) {
+                while (this.size != 0 && ! this._terminated) {
                     if (this._drain.fulfilled) {
                         this._drain = new Future
                     }
@@ -191,7 +230,7 @@ class Turnstile {
     //
     async _turnstile (rejector) {
         for (;;) {
-            if (this.deferrable.destroyed) {
+            if (this._terminated) {
                 break
             }
             if (

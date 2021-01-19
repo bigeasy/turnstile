@@ -105,6 +105,7 @@ async function prove (okay) {
         })
         try {
             await destructible.promise
+            throw new Error('no error')
         } catch (error) {
             console.log(error.stack)
         }
