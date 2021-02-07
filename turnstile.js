@@ -1,5 +1,5 @@
 // Return the first not null-like value.
-const coalesce = require('extant')
+const { coalesce } = require('extant')
 
 const Interrupt = require('interrupt')
 

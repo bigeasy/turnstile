@@ -20,7 +20,7 @@
     },
     "dependencies":
     {
-                            "extant":                       "^1.0.20",
+                            "extant":                       "^2.0.0-alpha.0",
                             "interrupt":                    "11.0.0-alpha.16",
                             "perhaps":                      "0.0.6"
     },
