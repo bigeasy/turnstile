@@ -1,5 +1,5 @@
 // Return the first not null-like value.
-const coalesce = require('extant')
+const { coalesce } = require('extant')
 
 class Queue {
     constructor (turnstile, method, object) {
