@@ -22,7 +22,7 @@
     {
                             "extant":                       "^2.0.0-alpha.0",
                             "interrupt":                    "11.0.0-alpha.20",
-                            "perhaps":                      "0.0.8"
+                            "perhaps":                      "0.0.9"
     },
     "devDependencies":
     {
