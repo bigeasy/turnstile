@@ -113,6 +113,7 @@ class Turnstile {
         this.destructible.destruct(() => this.deferrable.decrement())
         this.deferrable.destruct(() => {
             this.deferrable.ephemeral($ => $(), 'shutdown', async () => {
+                await this.drain()
                 this._terminated = true
                 while (this._latches.length != 0) {
                     this._latches.shift().resolve()
