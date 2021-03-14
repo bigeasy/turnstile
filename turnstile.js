@@ -122,7 +122,6 @@ class Turnstile {
             })
         })
         this.deferrable.panic(() => {
-            console.log('turnstile panic')
             this._terminated = true
             this._drain.resolve()
         })
