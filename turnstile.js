@@ -6,7 +6,7 @@ const Interrupt = require('interrupt')
 const Destructible = require('destructible')
 
 // A Promise wrapper that captures `resolve` and `reject`.
-const Future = require('perhaps')
+const { Future } = require('perhaps')
 
 // Construct a turnstile.
 //
