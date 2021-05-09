@@ -13,8 +13,8 @@ const { Future } = require('perhaps')
 // `options`
 //
 //  * `strands` ~ number of concurrent invocations of the worker function.
-//  * `timeout` ~ time in millisecond before marking a task as timedout and
-//  invoking the worker function for task cancelation.
+//  * `timeout` ~ time in millisecond before marking a task as timed out and
+//  invoking the worker function for task cancellation.
 //  * `Date` ~ provide a dummy date implementation, useful for unit testing
 //  task timeouts.
 
@@ -92,7 +92,7 @@ class Turnstile {
 
     //
     constructor (destructible, options = {}) {
-        // Here is the new staged destruction convenion.
+        // Here is the new staged destruction convention.
         this.destructible = destructible
         this.deferrable = this.destructible.durable($ => $(), { countdown: 1 }, 'deferrable')
         this._terminated = false
@@ -202,7 +202,7 @@ class Turnstile {
         // We check for rejections on entry assuming that if we've managed to
         // make our work queue a certain length, there is no harm in leaving it
         // that length for however long it takes for us to detect that it is
-        // stuggling. We just won't grow it when messages are timing out.
+        // struggling. We just won't grow it when messages are timing out.
         if (this._head.next.timesout <= this._Date.now()) {
             this._reject.resolve()
         }
@@ -213,15 +213,16 @@ class Turnstile {
     //
     // We have two nested loops. The inner loop is a best-foot-forward loop, if
     // there is no error as there shouldn't be, it will forgo the overhead of a
-    // try/catch block while chewing through a backlog. This optimzation may not be
-    // that much of an optimization and simpler would be better so we should
+    // try/catch block while chewing through a backlog. This optimzation may not
+    // be that much of an optimization and simpler would be better so we should
     // TODO benchmark it at some point.
     //
-    // If we catch an error from the work function for a canceled task we through it
-    // and we hope it blows the whole application up because it's too late to do
-    // anything meaningful at all with an exception. We used to use `abend` to
-    // ensure calamity befalls our dear user, but I'm curious to see if this can be
-    // raised and not swallowed with my current exception handling disciplines.
+    // If we catch an error from the work function for a canceled task we
+    // through it and we hope it blows the whole application up because it's too
+    // late to do anything meaningful at all with an exception. We used to use
+    // `abend` to ensure calamity befalls our dear user, but I'm curious to see
+    // if this can be raised and not swallowed with my current exception
+    // handling disciplines.
     //
     // But if we get an error form the work function for an actual task, we'll
     // record it and report it as so as we're done destroying ourselves.
