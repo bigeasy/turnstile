@@ -28,7 +28,7 @@
     {
                             "destructible":                 "7.0.0-alpha.67",
                             "proof":                        "^9.0.2",
-                            "semblance":                    "^2.0.2"
+                            "semblance":                    "^3.0.0"
     },
     "main":                 "turnstile",
     "scripts":
