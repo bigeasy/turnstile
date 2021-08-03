@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/bigeasy/turnstile/branch/master/graph/badge.svg)](https://codecov.io/gh/bigeasy/turnstile)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An `async`/`await` parallel work queue.
+An evented, throttled work queue.
 
 | What          | Where                                         |
 | --- | --- |
