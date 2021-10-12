@@ -1,49 +1,16 @@
-// [![Actions Status](https://github.com/bigeasy/turnstile/workflows/Node%20CI/badge.svg)](https://github.com/bigeasy/turnstile/actions)
-// [![codecov](https://codecov.io/gh/bigeasy/turnstile/branch/master/graph/badge.svg)](https://codecov.io/gh/bigeasy/turnstile)
-// [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-//
-// An evented, throttled work queue.
-//
-// | What          | Where                                         |
-// | --- | --- |
-// | Discussion    | https://github.com/bigeasy/turnstile/issues/1 |
-// | Documentation | https://bigeasy.github.io/turnstile           |
-// | Source        | https://github.com/bigeasy/turnstile          |
-// | Issues        | https://github.com/bigeasy/turnstile/issues   |
-// | CI            | https://travis-ci.org/bigeasy/turnstile       |
-// | Coverage:     | https://codecov.io/gh/bigeasy/turnstile       |
-// | License:      | MIT                                           |
-//
-//
-// Turnstile installs from NPM.
+require('proof')(7, prove)
 
-// ## Living `README.md`
-//
-// This `README.md` is also a unit test using the
-// [Proof](https://github.com/bigeasy/proof) unit test framework. We'll use the
-// Proof `okay` function to assert out statements in the readme. A Proof unit test
-// generally looks like this.
-
-require('proof')(8, async okay => {
-    // ## Overview
-    //
-    // Required.
-
-    const Turnstile = require('..')
-
-    // Additional requires.
-
+async function prove (okay) {
+    const semblance = require('semblance')
     const Destructible = require('destructible')
-
-    // Simple example with a timeout.
-
+    const Turnstile = require('../turnstile')
     {
-        const destructible = new Destructible('test/turnstile.t')
-        destructible.durable('run and timeout', async function () {
+        const destructible = new Destructible($ => $(), 'test/turnstile.t')
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             const test = []
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
-                strands: 1,
+                turnstiles: 1,
                 Date: { now: () => now },
                 timeout: 2
             })
@@ -80,15 +47,12 @@ require('proof')(8, async okay => {
         await destructible.promise
     }
 
-    // Timeout. Note that b arrives before a because it was cancelled using the
-    // cancellation strand.
-
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
         destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
-                strands: 1,
+                turnstiles: 1,
                 Date: { now: () => now },
                 timeout: 2
             })
@@ -101,12 +65,10 @@ require('proof')(8, async okay => {
             turnstile.enter({ ...work, value: 'a' }, async ({ entered, blocked, value, timedout }) => {
                 entered.resolve()
                 await blocked.promise
-                console.log('a')
                 test.push({ value, timedout })
             })
             await work.entered.promise
             turnstile.enter({ value: 'b' }, async ({ value, timedout }) => {
-                console.log('b')
                 test.push({ value, timedout })
             })
             now += 2
@@ -116,16 +78,13 @@ require('proof')(8, async okay => {
             work.blocked.resolve()
             await turnstile.drain()
             destructible.destroy()
-            console.log(test)
         })
         await destructible.promise
     }
 
-    // Errors come out of `Destructible`.
-
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
-        destructible.durable($ => $(), 'run and timeout', async function () {
+        destructible.ephemeral($ => $(), 'run and timeout', async function () {
             let now = 0
             const turnstile = new Turnstile(destructible.durable('turnstile'), {
                 turnstiles: 1,
@@ -151,8 +110,6 @@ require('proof')(8, async okay => {
             console.log(error.stack)
         }
     }
-
-    // The deferrable construct.
 
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
@@ -184,8 +141,6 @@ require('proof')(8, async okay => {
         await destructible.promise
     }
 
-    // Example of unqueue.
-
     {
         const destructible = new Destructible($ => $(), 'test/turnstile.t')
         await destructible.ephemeral($ => $(), 'run and timeout', async function () {
@@ -207,36 +162,20 @@ require('proof')(8, async okay => {
         await destructible.promise
     }
 
-    // Example of `options` and `vargs` static methods.
-
     {
         const options = Turnstile.options([ { value: 1 }, async () => {} ])
-        okay({
-            trace: options.trace,
-            when: options.when,
-            work: options.work,
-            worker: options.worker.toString(),
-            object: options.object
-        }, {
+        okay(semblance(options, {
             trace: null,
             when: null,
             work: { value: 1 },
-            worker: 'async () => {}',
+            worker: value => typeof value == 'function',
             object: null
-        }, 'options')
+        }), 'options')
         const vargs = Turnstile.vargs(options)
-        okay([
-            vargs[0],
-            vargs[1].toString(),
-            vargs[2]
-        ], [
+        okay(semblance(vargs, [
             { value: 1 },
-            'async () => {}',
+            value => typeof value == 'function',
             null
-        ], 'vargs')
-        okay(vargs.length, 3, 'vargs length')
+        ], { length: 3 }), 'vargs')
     }
-})
-
-// You can run this unit test yourself to see the output from the various
-// code sections of the readme.
+}
