@@ -1,6 +1,6 @@
 {
     "name":                 "turnstile",
-    "version":              "6.0.0-alpha.82",
+    "version":              "6.0.0-alpha.83",
     "description":
 
       "An evented, throttled work queue.",
