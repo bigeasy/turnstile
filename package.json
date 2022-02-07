@@ -21,7 +21,7 @@
     "dependencies":
     {
                             "extant":                       "^2.0.0-alpha.3",
-                            "interrupt":                    "11.0.0-alpha.25",
+                            "interrupt":                    "11.0.0-alpha.26",
                             "perhaps":                      "0.0.13"
     },
     "devDependencies":
